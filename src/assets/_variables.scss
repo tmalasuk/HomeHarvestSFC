@@ -1,0 +1,124 @@
+$grid-columns: 40;
+
+:root {
+
+    --toggle-transition: 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+    --box-shadow: rgba(0, 0, 0, 0.15) 0px 15px 25px,
+        rgba(0, 0, 0, 0.05) 0px 5px 10px;
+
+    // surfaces
+    --bg: #fbf9f9;
+    --bg2: #e5e0de;
+    --surface: #ebebeb;
+    --surface2: #d8d8d8;
+    --surface3: #bfbdbb;
+    --surface4: #acabaa;
+    --header-color: #D1DED3;
+    --light-background: #FAFAF8;
+    --modal-bg: #e4eae6;
+
+    // Borders
+    --border: #d7dada;
+    --border-subtle: #d1ded3;
+
+    // Text
+    --text: #1a2420;
+    --text-muted: #3f4340;
+    --text-faint: #5d6763;
+    --text-opposite: rgb(229, 223, 223);
+
+    // Accent
+    --sage: #6b7e6b;
+    --dusty-blue: rgb(144, 157, 165);
+    --accent-dimmest: #adb6b5;
+    --opposite-accent: rgb(96, 80, 77);
+
+    // Status
+    --success: #508464;
+    --warning: #b47f2a;
+    --danger: #962d21;
+    --danger-accent: #b94747;
+    --lighten: #eee8e740;
+    --darken: #15121135;
+    --transparent: #15121100;
+
+    //Buttons
+    --add-button-bg-light: #73898b;
+    --add-button-light: #f0f4f4;
+    --outside-tab-deactive: #696E69;
+    --inside-tab-deactive: #839485;
+    --modal-btn-bg: rgb(239, 206, 181);
+
+    //light mode toggle
+    --track-from: #a1a4a2;
+    --track-to: #848785;
+    --track-bg: rgb(210, 199, 182);
+    --border: #ddcfbac5;
+    --thumb: #544d4d;
+    --glow: rgba(62, 45, 25, 0.25);
+    --accent: #1a1a1a;
+    --text-muted: #9d918a;
+    --star-color: #1a1a1a;
+
+    //misc
+    --progress-bar: rgba(128, 128, 128, 0.564);
+
+}
+
+[data-theme="dark"] {
+    --bg: #101010;
+    --bg2: #1f2122;
+    --surface: #272a2b;
+    --surface2: #2e3133;
+    --surface3: #383c3e;
+    --surface4: #424648;
+    --header-color: #555756;
+    --light-background: #989898;
+    --modal-bg: #616462;
+
+    // Borders
+    --border: #1d1d1a;
+    --border-subtle: #151211;
+
+    // Text
+    --text: #f0ebe6;
+    --text-muted: #d8d6d6;
+    --text-faint: #b8b7b7;
+    --text-opposite: rgb(41, 40, 40);
+
+    // Accent
+    --sage: #52594d;
+    --accent-dim: #b8bcbb;
+    --accent-dimmest: #adb6b5;
+    --opposite-accent: rgb(96, 80, 77);
+
+    // Status
+    --success: #508464;
+    --warning: #b47f2a;
+    --danger: #962d21;
+    --danger-accent: #b94747;
+    --lighten: #eee8e740;
+    --darken: #15121135;
+    --transparent: #15121100;
+
+    //Buttons
+    --add-button-bg-light: #73898b;
+    --add-button-light: #f0f4f4;
+    --outside-tab-deactive: #696E69;
+    --inside-tab-deactive: #839485;
+    --modal-btn-bg: rgb(239, 206, 181);
+
+    //dark mode toggle
+     --track-from: #1a100a;
+    --track-to: #2e1c10;
+    --track-bg: #261508;
+    --border: #332920;
+    --thumb: #c4663a;
+    --glow: rgba(196, 102, 58, 0.35);
+    --accent: #e08a60;
+    --text-muted: #8a7060;
+    --star-color: #e0b090;
+
+    //misc
+    --progress-bar: rgba(128, 128, 128, 0.564);
+}

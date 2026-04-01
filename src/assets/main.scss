@@ -1,0 +1,230 @@
+@import 'variables';
+
+// Bootstrap import
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+//---------- GOOGLE FONTS
+
+//TODO: download these
+//button font
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+//logo font
+@import url('https://fonts.googleapis.com/css2?family=Libre+Barcode+128+Text&display=swap');
+//header font
+@import url('https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap');
+//body font
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
+//categories font
+@import url('https://fonts.googleapis.com/css2?family=Playwrite+NL:wght@100..400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&display=swap');
+
+//global
+
+
+.basic-button {}
+
+
+//---Desktop-specific
+
+html {
+    //always reserve scroll
+    overflow-y: scroll;
+}
+
+//custom scrollbar
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+
+    &:hover {
+        background: #555;
+    }
+}
+
+
+main {
+
+    min-height: 100vh;
+
+    .wrapper {
+        width: 100%;
+        box-shadow:
+            rgba(0, 0, 0, 0.08) 0px 10px 20px -12px inset,
+            /* faint top */
+            rgba(14, 14, 14, 0.148) 0px -40px 70px -5px inset;
+        /* bottom shadow */
+    }
+
+    .main-header {
+        margin: 0 auto;
+        max-width: 1400px;
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            margin-left: 70px;
+            width: 52px;
+            height: 52px;
+            flex-shrink: 0;
+            opacity: 0.65;
+            margin-top: 10px;
+        }
+
+        h1 {
+            padding-top: 30px;
+            font-size: 2.8em;
+            padding-bottom: 10px;
+            line-height: 1;
+
+            .logo-home {
+                font-family: "Poppins", sans-serif;
+                font-weight: 400;
+                font-size: 0.75em;
+            }
+
+            .logo-harvest {
+                font-family: "Sacramento", cursive;
+                font-weight: 400;
+                margin-left: -0.1em;
+            }
+        }
+    }
+}
+
+.tab-content {
+    min-width: 100%;
+}
+
+section {
+    margin: 0 auto;
+    max-width: 1400px;
+}
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+@keyframes sketch-in {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes sink-in {
+    from {
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes modal-pop-out {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    25% {
+        transform: translate(-50%, -50%) scale(1.07);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(0.65);
+        opacity: 0;
+    }
+}
+
+@keyframes input-shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20% {
+        transform: translateX(-5px);
+    }
+
+    60% {
+        transform: translateX(5px);
+    }
+
+    80% {
+        transform: translateX(-3px);
+    }
+}
+
+.suggest-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+}
+
+.suggest-dropdown {
+    width: 240px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    list-style: none;
+    margin: 0;
+    padding: 6px 0 10px;
+    border-radius: 0 0 20px 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+.suggest-drop-enter-active {
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.suggest-drop-leave-active {
+    transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.suggest-drop-enter-from {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.92);
+    transform-origin: top;
+}
+.suggest-drop-leave-to {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.95);
+    transform-origin: top;
+}
+
+@keyframes suggest-item-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.suggest-item {
+    padding: 7px 14px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    letter-spacing: 0.01em;
+    opacity: 0;
+    animation: suggest-item-in 0.18s ease forwards;
+    transition: background-color 0.1s;
+}
