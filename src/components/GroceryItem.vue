@@ -95,7 +95,7 @@ export default {
                 },
                 over() {
                     if (vm.isMobile) {
-                        vm.dragOverCatId = parseInt($(this).data('cat-id'));
+                        vm.dragOverCatId = $(this).data('cat-id');
                     }
                 },
                 out() {
@@ -104,9 +104,10 @@ export default {
                     }
                 },
                 receive(event, ui) {
-                    const newCatId = parseInt($(this).data('cat-id'));
-                    const productId = parseInt($(ui.item).data('product-id'));
+                    const newCatId = $(this).data('cat-id');
+                    const productId = $(ui.item).data('product-id');
                     const dropIndex = $(ui.item).index();
+                    ui.item.remove();
                     vm.$emit('move-item', { productId, newCatId, dropIndex });
                 },
             });
@@ -117,8 +118,8 @@ export default {
 
 <!-- // paths must be relative (what file you are currently in)-->
 <template>
-    <div v-for="(cat, index) in sortedByCat" :key="cat.id" :data-id="cat.id">
-        <div class="grid-item" v-if="cat.products.length !== 0" :class="{ 'drag-target': dragOverCatId === cat.id }">
+    <div v-for="cat in sortedByCat" :key="cat.id" :data-id="cat.id">
+        <div class="grid-item" :class="{ 'drag-target': dragOverCatId === cat.id, 'empty-cat': cat.products.length === 0 }">
             <div class="sort-box">
                 <div class="category-header" @click="editingCatId !== cat.id && handleCategoryClick(cat)">
                     <input v-if="editingCatId === cat.id" class="cat-rename-input" v-model="editingCatName"
@@ -135,6 +136,7 @@ export default {
             </div>
 
             <ul class="item-list" :data-cat-id="cat.id">
+                <li v-if="cat.products.length === 0" class="empty-placeholder">Drop items here</li>
                 <li v-for="product in cat.products" :key="product.id" :data-product-id="product.id">
                     <label class="circle-check">
                         <input class="check-me-off" v-model="product.bought" type="checkbox">
@@ -149,7 +151,7 @@ export default {
                             <i class="bi bi-plus-lg" @click="$emit('qty-increase', product)"></i>
                         </div>
                         <base-duration-input v-else :key="'exp'" :duration="product.durationValue"
-                            :unit-index="product.selectedUnit" :units="units" track-width="80px"
+                            :unit-index="product.selectedUnit" :units="units" track-width="80px" variant="grocery"
                             @update:duration="product.durationValue = $event; $emit('update-expiration', product)"
                             @update:unit-index="product.selectedUnit = $event; $emit('update-expiration', product)" />
                     </transition>
@@ -188,6 +190,25 @@ export default {
     }
 }
 
+.empty-cat {
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+
+    &:hover, &.drag-target {
+        opacity: 1;
+    }
+}
+
+.empty-placeholder {
+    text-align: center;
+    font-size: 0.72rem;
+    font-style: italic;
+    opacity: 0.5;
+    padding: 10px 0;
+    list-style: none;
+    pointer-events: none;
+}
+
 .grid-item {
     break-inside: avoid;
     -webkit-column-break-inside: avoid;
@@ -196,6 +217,7 @@ export default {
     margin-bottom: 20px;
     transition: background-color 0.4s ease, box-shadow 0.4s ease,
         border-radius 0.4s ease, margin-bottom 0.4s ease;
+        box-shadow: var(--box-shadow);
 
     .item-list {
         max-height: 2000px;
@@ -431,90 +453,4 @@ label {
     }
 }
 
-// ── Duration input inside item list ──
-//TODO: should this be here?
-.item-list .duration-input {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-shrink: 0;
-    margin-right: 20px;
-}
-
-
-.item-list .duration-number {
-    width: 36px;
-    font-family: "Oxygen";
-    font-size: 0.8rem;
-    font-weight: 500;
-    text-align: center;
-    border-radius: 5px;
-    color: var(--text);
-    padding: 3px 0;
-    background: transparent;
-    border: none;
-    border: 1px solid var(--border);
-    transition: border-color .2s;
-
-    &:focus {
-        outline: none;
-    }
-
-    &::-webkit-inner-spin-button,
-    &::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-    }
-}
-
-.item-list .unit-switcher {
-    display: flex;
-    align-items: center;
-}
-
-.item-list .unit-arrow {
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 0.55rem;
-    opacity: 0.25;
-    padding: 4px 3px;
-    transition: opacity .15s, transform .15s;
-    line-height: 1;
-    color: var(--text);
-
-    &:hover {
-        opacity: .85;
-    }
-
-    &.left:hover {
-        transform: translateX(-2px);
-    }
-
-    &.right:hover {
-        transform: translateX(2px);
-    }
-}
-
-.item-list .unit-display {
-    overflow: hidden;
-    width: 80px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-}
-
-.item-list .unit-track {
-    display: flex;
-    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
-
-    span {
-        flex: 0 0 80px;
-        text-align: center;
-        font-family: "Inter";
-        font-size: 0.68rem;
-        font-weight: 300;
-        letter-spacing: 0.03em;
-        color: var(--text-muted);
-    }
-}
 </style>

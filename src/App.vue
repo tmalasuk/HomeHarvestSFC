@@ -6,6 +6,9 @@ import Grocery from './components/Grocery.vue';
 import { computeExpirationDate } from './utils.js';
 import { getIngredientCategory } from './ingredientCategories.js';
 import { seedPantryProducts, seedShoppingProducts, seedRecipes } from './seedData.js';
+import PantryCollection from './collections/PantryCollection.js';
+import ShoppingListCollection from './collections/ShoppingListCollection.js';
+import RecipeCollection from './collections/RecipeCollection.js';
 
 export default {
     name: 'App',
@@ -16,6 +19,7 @@ export default {
         return {
            // changes tabs
             currentTab: 'pantry',
+            navIndicatorStyle: {},
 
             //hard set categories - no more adding or removing categories. TODO: remove unused categories from pantry view
             categories: [
@@ -36,15 +40,9 @@ export default {
             ],
 
             // starter data
-            pantry: {
-                products: seedPantryProducts,
-            },
-
-            shoppingList: {
-                products: seedShoppingProducts,
-            },
-
-            recipes: seedRecipes,
+            pantry: new PantryCollection(seedPantryProducts),
+            shoppingList: new ShoppingListCollection(seedShoppingProducts),
+            recipes: new RecipeCollection(seedRecipes),
 
             //TODO: I only need one of these. 
             isDesktop: window.innerWidth >= 1400,
@@ -85,13 +83,13 @@ export default {
             const category = this.categories.find(c => c.id === id);
             if (!category) return;
             const oldName = category.name;
-            this.pantry.products.forEach(p => {
+            this.pantry.forEach(p => {
                 if (p.category === oldName) {
                     p.category = newName;
                     p.batch.forEach(i => { i.category = newName; });
                 }
             });
-            this.shoppingList.products.forEach(p => {
+            this.shoppingList.forEach(p => {
                 if (p.category === oldName) p.category = newName;
             });
             for (const key in this.userOverrides) {
@@ -105,62 +103,35 @@ export default {
         },
 
         stopEditingName(item, product) {
-            let oldProduct = product;
-            const indexInBatch = product.batch.findIndex(b => b.id === item.id);
-            if (indexInBatch !== -1) {
-                const [movedItem] = product.batch.splice(indexInBatch, 1);
-                let targetProduct = this.pantry.products.find(p =>
-                    p.name === movedItem.name && p.category === movedItem.category
-                );
-                if (targetProduct) {
-                    this.productOfEditItem = targetProduct;
-                    targetProduct.batch.push(movedItem);
+            const result = product.moveItemTo(item, this.pantry);
+            if (!result) return;
+
+            const { targetProduct, created } = result;
+            this.productOfEditItem = targetProduct;
+
+            if (created) {
+                const originalProductIndex = this.pantry.findIndex(p => p.id === product.id);
+                if (originalProductIndex !== -1) {
+                    this.pantry.splice(originalProductIndex + 1, 0, targetProduct);
                 } else {
-                    const newProductId = this.pantry.products.length
-                        ? Math.max(...this.pantry.products.map(p => p.id)) + 1
-                        : 1;
-                    targetProduct = {
-                        id: newProductId,
-                        name: movedItem.name,
-                        category: movedItem.category,
-                        restock: false,
-                        restockQty: 1,
-                        isOpen: false,
-                        batch: [movedItem]
-                    };
-                    const originalProductIndex = this.pantry.products.findIndex(p => p.id === oldProduct.id);
-                    if (originalProductIndex !== -1) {
-                        this.pantry.products.splice(originalProductIndex + 1, 0, targetProduct);
-                        this.productOfEditItem = targetProduct;
-                    } else {
-                        this.pantry.products.push(targetProduct);
-                        this.productOfEditItem = targetProduct;
-                    }
+                    this.pantry.push(targetProduct);
                 }
-                if (oldProduct.batch.length === 0) {
-                    const indexProduct = this.pantry.products.findIndex(p => p.id === oldProduct.id);
-                    if (indexProduct !== -1) this.pantry.products.splice(indexProduct, 1);
-                } else if (oldProduct.batch.length === 1) {
-                    oldProduct.isOpen = false;
-                }
+            }
+
+            if (product.batch.length === 0) {
+                const indexProduct = this.pantry.findIndex(p => p.id === product.id);
+                if (indexProduct !== -1) this.pantry.splice(indexProduct, 1);
+            } else if (product.batch.length === 1) {
+                product.isOpen = false;
             }
         },
 
         deleteProduct(product) {
-            const index = this.pantry.products.findIndex(p => p === product);
-            if (index !== -1) this.pantry.products.splice(index, 1);
+            this.pantry.removeProduct(product);
         },
 
         deleteItem(item, product) {
-            const productIndex = this.pantry.products.findIndex(p => p.name === product.name);
-            const targetProduct = this.pantry.products[productIndex];
-            const itemIndex = targetProduct.batch.findIndex(i => i.name === item.name);
-            targetProduct.batch.splice(itemIndex, 1);
-            if (targetProduct.batch.length === 0) {
-                this.pantry.products.splice(productIndex, 1);
-            } else if (targetProduct.batch.length === 1) {
-                targetProduct.isOpen = false;
-            }
+            this.pantry.removeItem(item, product);
         },
 
         handlePantryAddItem({ name, categoryOverride }) {
@@ -186,62 +157,19 @@ export default {
         },
 
         addToPantry(name, category, quantity) {
-            let matchProduct = this.pantry.products.find(p => p.name === name && p.category === category.name);
-            const newItems = [];
-            const now = new Date();
-            for (let i = 0; i < quantity; i++) {
-                newItems.push({
-                    id: crypto.randomUUID(),
-                    name,
-                    category: category.name,
-                    dateAdded: now,
-                    expiration: new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000) * 2),
-                    qty: 100,
-                });
-            }
-            if (matchProduct) {
-                matchProduct.batch.unshift(...newItems);
-            } else {
-                this.pantry.products.unshift({
-                    id: crypto.randomUUID(),
-                    name,
-                    category: category.name,
-                    restock: false,
-                    restockQty: 1,
-                    isOpen: false,
-                    batch: newItems,
-                });
-            }
+            this.pantry.add(name, category, quantity);
         },
 
         addToShoppingList(name, newCategory, quantity) {
-            const combined = [...this.shoppingList.products, ...this.restockShoppingList];
-            const matchItem = combined.find(p => p.name === name && p.category === newCategory.name);
-            if (matchItem) {
-                matchItem.qty += quantity;
-            } else {
-                this.shoppingList.products = [...this.shoppingList.products, {
-                    id: crypto.randomUUID(),
-                    name,
-                    qty: quantity,
-                    category: newCategory.name,
-                    expiration: null,
-                    action: false,
-                    bought: false,
-                    durationValue: 2,
-                    selectedUnit: 1,
-                }];
-            }
+            this.shoppingList.add(name, newCategory, quantity);
         },
 
         isIngredientInPantry(name) {
-            const key = name.trim().toLowerCase();
-            return this.pantry.products.some(p => p.name.trim().toLowerCase() === key);
+            return this.pantry.hasIngredient(name);
         },
 
         isIngredientOnShoppingList(name) {
-            const key = name.trim().toLowerCase();
-            return this.shoppingList.products.some(p => p.name.trim().toLowerCase() === key);
+            return this.shoppingList.hasIngredient(name);
         },
 
         addRecipeToGroceryList(recipe) {
@@ -263,65 +191,47 @@ export default {
         handleResize() {
             this.isDesktop = window.innerWidth >= 1400;
             this.isMobile = window.innerWidth < 1400;
+            this.updateNavIndicator();
+        },
+
+        updateNavIndicator() {
+            const nav = this.$el.querySelector('.nav-tabs');
+            const activeBtn = nav?.querySelector('.nav-link.active');
+            if (!nav || !activeBtn) return;
+            const navRect = nav.getBoundingClientRect();
+            const btnRect = activeBtn.getBoundingClientRect();
+            const w = btnRect.width * 0.5;
+            const left = (btnRect.left - navRect.left) + (btnRect.width - w) / 2;
+            this.navIndicatorStyle = { left: left + 'px', width: w + 'px' };
         },
 
         updateRestockShoppingList() {
-            this.restockShoppingList = this.pantry.products
-                .filter(p => p.restock === true)
-                .map(item => ({
-                    id: crypto.randomUUID(),
-                    name: item.name,
-                    category: item.category,
-                    qty: item.restockQty || 1,
-                    notes: '',
-                    originalPantryItem: item,
-                    action: false,
-                    bought: false,
-                    durationValue: 2,
-                    selectedUnit: 1,
-                }));
+            this.restockShoppingList = this.pantry.getRestockItems();
         },
 
         addBoughtToPantry() {
-            const bought = [...this.shoppingList.products, ...this.restockShoppingList].filter(p => p.bought);
-            const now = new Date();
+            const bought = [...this.shoppingList, ...this.restockShoppingList].filter(p => p.bought);
             bought.forEach(p => {
-                let matchProduct = this.pantry.products.find(
-                    product => product.name === p.name && product.category === p.category
-                );
-                const newItems = [];
-                for (let i = 0; i < p.qty; i++) {
-                    newItems.push({
-                        id: crypto.randomUUID(),
-                        name: p.name,
-                        category: p.category,
-                        dateAdded: now,
-                        expiration: computeExpirationDate(p.durationValue, this.units[p.selectedUnit]),
-                        qty: 100,
-                    });
-                }
-                if (matchProduct) {
-                    matchProduct.batch.unshift(...newItems);
-                } else {
-                    this.pantry.products.unshift({
-                        id: crypto.randomUUID(),
-                        name: p.name,
-                        category: p.category,
-                        restock: false,
-                        restockQty: 1,
-                        isOpen: false,
-                        batch: newItems,
-                    });
-                }
+                const category = { name: p.category };
+                const expiration = computeExpirationDate(p.durationValue, this.units[p.selectedUnit]);
+                this.pantry.add(p.name, category, p.qty, expiration);
             });
-            this.shoppingList.products = this.shoppingList.products.filter(p => !p.bought);
+            const boughtIndices = this.shoppingList.reduce((acc, p, i) => { if (p.bought) acc.push(i); return acc; }, []);
+            boughtIndices.reverse().forEach(i => this.shoppingList.splice(i, 1));
             this.updateRestockShoppingList();
+        },
+    },
+
+    watch: {
+        currentTab() {
+            this.$nextTick(() => this.updateNavIndicator());
         },
     },
 
     mounted() {
         window.addEventListener('resize', this.handleResize);
         this.updateRestockShoppingList();
+        this.$nextTick(() => this.updateNavIndicator());
     },
 
     beforeUnmount() {
@@ -332,7 +242,7 @@ export default {
 
 <!-- // paths must be relative (what file you are currently in)-->
 <template>
-    <main id="app">
+    <main>
         <div class="wrapper">
             <header class="d-flex main-header">
                 <div class="logo">
@@ -359,7 +269,7 @@ export default {
                             <span>Recipes</span><i class="bi bi-journal-text"></i>
                         </button>
                     </li>
-                    <span class="nav-indicator"></span>
+                    <span class="nav-indicator" :style="navIndicatorStyle"></span>
                 </ul>
             </header>
         </div>
@@ -369,7 +279,7 @@ export default {
             <!-- PANTRY -->
             <pantry
                 v-show="currentTab === 'pantry'"
-                :products="pantry.products"
+                :products="pantry"
                 :categories="categories"
                 :units="units"
                 :is-mobile="isMobile"
@@ -403,8 +313,8 @@ export default {
                 v-show="currentTab === 'recipes'"
                 :recipes="recipes"
                 :recipe-categories="recipeCategories"
-                :pantry-products="pantry.products"
-                :shopping-list="shoppingList.products"
+                :pantry-products="pantry"
+                :shopping-list="shoppingList"
                 :restock-shopping-list="restockShoppingList"
                 :newly-added-ingredients="newlyAddedIngredients"
                 @add-recipe-to-grocery="addRecipeToGroceryList($event)" />
@@ -430,9 +340,21 @@ export default {
         }
 
         .nav-link {
+            font-size: 1.5em;
             border: none;
             position: relative;
             transition: background-color 0.2s ease, color 0.2s ease;
+            background-color: var(--outside-tab-deactive);
+            color: var(--bg);
+
+            &.middle-tab {
+                background-color: var(--inside-tab-deactive);
+            }
+
+            &.active {
+                background-color: var(--bg2);
+                color: var(--text);
+            }
         }
     }
 }
@@ -443,6 +365,28 @@ export default {
     height: 4px;
     width: 60px;
     border-radius: 10px;
-    transition: all 0.3s ease;
+    background: var(--sage);
+    transition: left 0.3s ease, width 0.3s ease;
+}
+
+@keyframes tabSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-pane.fade.show {
+    animation: tabSlideIn 0.25s ease forwards;
+}
+
+.wrapper{
+    background-color: var(--sage);
+    background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.07) 0px, rgba(255, 255, 255, 0.07) 1px, transparent 1px, transparent 8px);
 }
 </style>

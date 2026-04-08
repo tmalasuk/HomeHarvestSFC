@@ -1,14 +1,23 @@
 $grid-columns: 40;
 
+// ---------BOOTSTRAP OVERRIDES
+$nav-tabs-link-active-bg: var(--bg);
+$nav-tabs-border-radius: 0;
+$nav-link-hover-color: var(--bg);
+$nav-link-padding-y: 1rem;
+$nav-link-padding-x: 2rem;
+$progress-height: 8px;
+$btn-close-color: #C43A3A;
+$grid-columns: 40;
+
 :root {
 
     --toggle-transition: 0.45s cubic-bezier(0.65, 0, 0.35, 1);
-    --box-shadow: rgba(0, 0, 0, 0.15) 0px 15px 25px,
-        rgba(0, 0, 0, 0.05) 0px 5px 10px;
+    --box-shadow: 0 0 16px rgba(0, 0, 0, 0.3);
 
     // surfaces
     --bg: #fbf9f9;
-    --bg2: #e5e0de;
+    --bg2: #f1eae8;
     --surface: #ebebeb;
     --surface2: #d8d8d8;
     --surface3: #bfbdbb;
@@ -18,7 +27,7 @@ $grid-columns: 40;
     --modal-bg: #e4eae6;
 
     // Borders
-    --border: #d7dada;
+    --border: #ddcfbac5;
     --border-subtle: #d1ded3;
 
     // Text
@@ -28,7 +37,7 @@ $grid-columns: 40;
     --text-opposite: rgb(229, 223, 223);
 
     // Accent
-    --sage: #6b7e6b;
+    --sage: #c0c6bf;
     --dusty-blue: rgb(144, 157, 165);
     --accent-dimmest: #adb6b5;
     --opposite-accent: rgb(96, 80, 77);
@@ -48,12 +57,12 @@ $grid-columns: 40;
     --outside-tab-deactive: #696E69;
     --inside-tab-deactive: #839485;
     --modal-btn-bg: rgb(239, 206, 181);
+    --pantry-btn: #c2a983;
 
     //light mode toggle
     --track-from: #a1a4a2;
     --track-to: #848785;
     --track-bg: rgb(210, 199, 182);
-    --border: #ddcfbac5;
     --thumb: #544d4d;
     --glow: rgba(62, 45, 25, 0.25);
     --accent: #1a1a1a;
@@ -62,12 +71,14 @@ $grid-columns: 40;
 
     //misc
     --progress-bar: rgba(128, 128, 128, 0.564);
+    --logo-home: rgb(107, 106, 103);
+    --logo-harvest: rgb(82, 91, 81);
 
 }
 
 [data-theme="dark"] {
-    --bg: #101010;
-    --bg2: #1f2122;
+    --bg: #1f2122;
+    --bg2: #161718;
     --surface: #272a2b;
     --surface2: #2e3133;
     --surface3: #383c3e;
@@ -84,10 +95,10 @@ $grid-columns: 40;
     --text: #f0ebe6;
     --text-muted: #d8d6d6;
     --text-faint: #b8b7b7;
-    --text-opposite: rgb(41, 40, 40);
+    --text-opposite: rgb(15, 14, 14);
 
     // Accent
-    --sage: #52594d;
+    --sage: #343732;
     --accent-dim: #b8bcbb;
     --accent-dimmest: #adb6b5;
     --opposite-accent: rgb(96, 80, 77);
@@ -107,6 +118,7 @@ $grid-columns: 40;
     --outside-tab-deactive: #696E69;
     --inside-tab-deactive: #839485;
     --modal-btn-bg: rgb(239, 206, 181);
+    --pantry-btn: #a8845f;
 
     //dark mode toggle
      --track-from: #1a100a;
@@ -121,4 +133,6 @@ $grid-columns: 40;
 
     //misc
     --progress-bar: rgba(128, 128, 128, 0.564);
+    --logo-home: rgb(215, 213, 206);
+    --logo-harvest: rgb(232, 234, 226);
 }

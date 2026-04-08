@@ -22,6 +22,7 @@ export default {
     data() {
         return {
             recipeMode:                 'book',
+            recipeIndicatorStyle:       {},
             selectedBookRecipe:         null,
             selectedDiscoverRecipe:     null,
             recipeBookSearch:           '',
@@ -259,16 +260,9 @@ export default {
         },
 
         submitNewRecipe({ name, description, servings, prepTime, cookTime, categories, ingredients, steps }) {
-            const newId = this.recipes.length > 0 ? Math.max(...this.recipes.map(r => r.id)) + 1 : 1;
-            const newRecipe = {
-                id: newId, name, description, servings, prepTime, cookTime,
-                categories, source: 'manual',
-                ingredients: ingredients ?? [],
-                instructions: steps ?? [],
-                notes: '', photo: null, savedAt: new Date(),
-            };
             (categories || []).forEach(cat => this.addRecipeCategory(cat));
-            this.recipes.push(newRecipe);
+            this.recipes.add({ name, description, servings, prepTime, cookTime, categories, ingredients, instructions: steps ?? [] });
+            const newRecipe = this.recipes[this.recipes.length - 1];
             this.recipeMode = 'book';
             this.selectedBookRecipe = newRecipe;
         },
@@ -276,15 +270,13 @@ export default {
         saveToBook(recipe) {
             if (recipe.savedToBook) return;
             const { savedToBook, ...recipeData } = recipe;
-            const newId = this.recipes.length > 0 ? Math.max(...this.recipes.map(r => r.id)) + 1 : 1;
             (recipeData.categories || []).forEach(cat => this.addRecipeCategory(cat));
-            this.recipes.push({ ...recipeData, id: newId, notes: '', photo: null, savedAt: new Date() });
+            this.recipes.add(recipeData);
             recipe.savedToBook = true;
         },
 
         isIngredientInPantry(name) {
-            const key = name.trim().toLowerCase();
-            return this.pantryProducts.some(p => p.name.trim().toLowerCase() === key);
+            return this.pantryProducts.hasIngredient(name);
         },
 
         isIngredientOnShoppingList(name) {
@@ -292,6 +284,27 @@ export default {
             return [...this.shoppingList, ...this.restockShoppingList]
                 .some(p => p.name.trim().toLowerCase() === key);
         },
+
+        updateRecipeIndicator() {
+            const toggle = this.$el.querySelector('.recipe-mode-toggle');
+            const activeBtn = toggle?.querySelector('button.active');
+            if (!toggle || !activeBtn) return;
+            const toggleRect = toggle.getBoundingClientRect();
+            const btnRect = activeBtn.getBoundingClientRect();
+            const w = btnRect.width * 0.5;
+            const left = (btnRect.left - toggleRect.left) + (btnRect.width - w) / 2;
+            this.recipeIndicatorStyle = { left: left + 'px', width: w + 'px' };
+        },
+    },
+
+    watch: {
+        recipeMode() {
+            this.$nextTick(() => this.updateRecipeIndicator());
+        },
+    },
+
+    mounted() {
+        this.$nextTick(() => this.updateRecipeIndicator());
     },
 }
 </script>
@@ -309,7 +322,7 @@ export default {
             <button :class="{ active: recipeMode === 'discover' }" @click="recipeMode = 'discover'">
                 <span>Discover</span>
             </button>
-            <span class="recipe-mode-indicator"></span>
+            <span class="recipe-mode-indicator" :style="recipeIndicatorStyle"></span>
         </div>
 
         <!-- ── BOOK / DISCOVER MODE ── -->
@@ -550,35 +563,49 @@ export default {
 
 @use "@/assets/variables" as *;
 
+// ── Recipes tab card wrapper ────────────────────────────────
+#recipes {
+    box-shadow: var(--box-shadow);
+    margin-top: 50px;
+    padding: 30px;
+    background-color: var(--bg);
+    border-radius: 15px;
+}
+
+// ── Internal sub-nav ────────────────────────────────────────
 .recipe-mode-toggle {
-    margin-left: 70px;
     display: flex;
-    padding: 100px 0px 0;
-    background: var(--bg2);
+    align-items: center;
+    gap: 0;
+    margin-bottom: 20px;
     position: relative;
-    height: 170px;
+    border-bottom: 1px solid transparent;
+
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 2%;
+        right: 2%;
+        height: 1px;
+        background: linear-gradient(to right, transparent, rgb(197, 197, 197), transparent);
+    }
 
     button {
         display: flex;
         align-items: center;
-        padding: 10px 45px;
+        padding: 8px 28px;
         border: none;
         background: transparent;
-        font-family: 'Oxygen';
-        font-size: 20px;
+        font-family: 'Quicksand', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
         cursor: pointer;
         color: var(--text-faint);
-        background-color: rgba(21, 18, 17, 0.2078431373);
-        transition: color 0.15s ease, background 0.15s ease;
-
-        i {
-            padding-right: 5px;
-            font-size: 25px;
-            margin-top: 5px;
-        }
+        transition: color 0.15s ease;
 
         &.active {
-            background: var(--bg);
             color: var(--text);
         }
 
@@ -590,121 +617,82 @@ export default {
     .recipe-mode-indicator {
         position: absolute;
         bottom: 0;
-        height: 4px;
-        width: 60px;
+        height: 3px;
         border-radius: 10px;
-        transition: all 0.3s ease;
-        background: var(--sage);
+        transition: left 0.3s ease, width 0.3s ease;
+        background: var(--border-subtle);
         z-index: 3;
     }
-
-    button {
-        position: relative;
-        z-index: 2;
-
-        &::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-
-        &:first-of-type::after {
-            box-shadow: 0 0 16px rgba(0, 0, 0, 0.3);
-            clip-path: inset(-16px 0 0 -16px); // top + left only
-        }
-
-        &:last-of-type::after {
-            box-shadow: 0 0 16px rgba(0, 0, 0, 0.3);
-            clip-path: inset(-16px -16px 0 0); // top + right only
-        }
-    }
-}
-
-.recipe-book,
-.discover-view .container {
-    margin: 0 auto;
-    padding: 28px 24px;
 }
 
 .recipe-book,
 .discover-view {
-    border-radius: 15px;
     position: relative;
-    z-index: 1;
-    box-shadow: 0 0 16px rgba(0, 0, 0, 0.3);
 }
 
 .discover-view {
-    padding: 40px;
+    padding: 10px 0 0;
 }
 
 .recipe-book-actions {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 32px;
-    flex-wrap: wrap;
+    margin-bottom: 20px;
 }
 
 .recipe-action-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 18px;
-    border: none;
-    border-radius: 50px;
-    background: #c2a983;
+    gap: 7px;
+    padding: 5px 14px;
+    border: 1.5px solid var(--pantry-btn);
+    border-radius: 20px;
+    background: var(--pantry-btn);
     font-family: 'Inter', sans-serif;
-    font-size: 0.6rem;
+    font-size: 1rem;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     cursor: pointer;
-    color: var(--text-opposite);
+    color: #fff;
     white-space: nowrap;
-    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-    transition: all 0.3s ease-in-out;
+    transition: opacity 0.15s ease;
+    opacity: 0.85;
 
     &:hover {
-        box-shadow: rgba(0, 0, 0, 0.5) 0px 6px 18px;
-        filter: brightness(1.08);
-    }
-
-    &:active {
-        box-shadow: rgba(0, 0, 0, 0.25) 0px 2px 6px;
-        filter: brightness(0.95);
-        transition: all 0.1s ease-in-out;
+        opacity: 1;
     }
 }
 
 .first-btn {
     margin-left: auto;
-    background-color: var(--add-button-bg-light);
+    background: var(--add-button-bg-light);
+    border-color: var(--add-button-bg-light);
 }
 
 .recipe-book-search {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
     min-width: 180px;
     max-width: 300px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
+    background: rgb(233, 231, 231);
+    border: none;
+    border-radius: 50px;
+    padding: 10px 18px;
 
     i {
         color: var(--text-faint);
         font-size: 13px;
+        flex-shrink: 0;
     }
 
     input {
         border: none;
         background: transparent;
-        font-family: 'Oxygen';
-        font-size: 20px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.75rem;
         color: var(--text);
         width: 100%;
         outline: none;
@@ -737,10 +725,12 @@ export default {
     cursor: pointer;
     border: 1px solid var(--border);
     background: var(--bg);
-    transition: filter 0.2s ease;
+    box-shadow: var(--box-shadow);
+    transition: filter 0.2s ease, transform 0.2s ease;
 
     &:hover {
-        filter: brightness(1.08);
+        filter: brightness(1.05);
+        transform: translateY(-2px);
     }
 
     .card-photo {
@@ -824,6 +814,21 @@ export default {
             color: var(--text-faint);
             border: none;
         }
+    }
+}
+
+.recently-saved {
+    margin-bottom: 24px;
+}
+
+.recently-saved-scroll {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    padding: 4px;
+
+    .recipe-book-card {
+        width: 100%;
     }
 }
 
@@ -952,12 +957,15 @@ export default {
 
 .book-cards-flat {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 300px);
-    justify-content: center;
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
     margin-top: 8px;
-    overflow: hidden;
+    padding: 4px;
     transition: height 0.35s ease;
+
+    .recipe-book-card {
+        width: 100%;
+    }
 
     .empty-msg {
         width: 100%;
@@ -1020,6 +1028,138 @@ export default {
             border-color: var(--accent);
             color: #fff;
         }
+    }
+}
+
+.discover-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.discover-section-title {
+    font-family: 'Oxygen';
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--text-faint);
+}
+
+.expiring-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.expiring-chip {
+    font-family: 'Oxygen';
+    font-size: 15px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: rgba(240, 144, 58, 0.12);
+    color: rgba(180, 90, 10, 0.85);
+    border: 1px solid rgba(240, 144, 58, 0.3);
+}
+
+.discover-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+
+    .recipe-book-card {
+        width: 100%;
+    }
+}
+
+.discover-prompt-area {
+    margin-bottom: 28px;
+}
+
+.discover-prompt-input {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+
+    textarea {
+        flex: 1;
+        font-family: 'Oxygen';
+        font-size: 14px;
+        color: var(--text);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 16px;
+        resize: none;
+        height: 72px;
+        outline: none;
+        line-height: 1.5;
+        transition: border-color 0.15s ease;
+
+        &::placeholder {
+            color: var(--text-faint);
+        }
+
+        &:focus {
+            border-color: var(--accent-dim);
+        }
+    }
+}
+
+.discover-generate-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    border: none;
+    background: var(--text);
+    color: var(--bg);
+    font-family: 'Oxygen';
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    height: 72px;
+    transition: opacity 0.15s ease;
+
+    i {
+        font-size: 15px;
+    }
+
+    &:hover {
+        opacity: 0.85;
+    }
+}
+
+.save-recipe-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-family: 'Oxygen';
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+    i {
+        font-size: 14px;
+    }
+
+    &:hover {
+        background: var(--bg2);
+    }
+
+    &.saved-state {
+        background: var(--text);
+        color: var(--bg);
+        border-color: var(--text);
     }
 }
 </style>

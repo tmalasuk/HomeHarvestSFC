@@ -43,11 +43,6 @@ export default {
             }
         },
 
-        getMaxBatchQtyPercent() {
-            if (!this.product.batch || this.product.batch.length === 0) return 0;
-            return Math.max(...this.product.batch.map(b => b.qty || 0));
-        },
-
         startEditName(item) {
             this.editingNameItemId = item.id;
             this.editingNameValue = item.name;
@@ -107,8 +102,7 @@ export default {
 
 <!-- // paths must be relative (what file you are currently in)-->
 <template>
-    <div class="product" :class="{ 'row-dragging': isDragging }" draggable="true" @dragstart="onDragStart"
-        @dragend="onDragEnd">
+    <div class="product" :class="{ 'row-dragging': isDragging }" @dragend="onDragEnd">
 
         <!-- Main row -->
         <div :class="{
@@ -125,7 +119,7 @@ export default {
             <div class="col-1" v-else></div>
 
             <!-- Name -->
-            <div class="col-md-13 col-12 truncate">
+            <div class="col-md-10 col-12 truncate">
                 <template v-if="product.batch.length === 1">
                     <input v-if="editingNameItemId === product.batch[0].id" class="inline-name-input"
                         v-model="editingNameValue" @blur="commitName(product.batch[0], product)"
@@ -139,7 +133,7 @@ export default {
             </div>
 
             <!-- Qty -->
-            <div class="col-md-4 col-6">
+            <div class="col-md-7 col-6">
                 <div v-if="!product.isOpen" class="qty-controls">
                     <template v-if="product.batch.length === 1">
                         <button class="qty-btn" @click.stop="adjustQty(product.batch[0], -10)">−</button>
@@ -147,7 +141,7 @@ export default {
                         <button class="qty-btn" @click.stop="adjustQty(product.batch[0], 10)">+</button>
                     </template>
                     <template v-else>
-                        <span class="qty-val">{{ getMaxBatchQtyPercent() }}%</span>
+                        <span class="qty-val">{{ product.getMaxBatchQtyPercent() }}%</span>
                     </template>
                 </div>
             </div>
@@ -174,7 +168,7 @@ export default {
             </div>
 
             <!-- Category -->
-            <div class="col-md-7 col-0">{{ product.category }}</div>
+            <div class="col-md-7 col-0 drag-handle" draggable="true" @dragstart="onDragStart">{{ product.category }}</div>
 
             <!-- Trash -->
             <div class="col-md-3 col-4 trash">
@@ -215,7 +209,7 @@ export default {
                         <div class="col-1"></div>
 
                         <!-- Name -->
-                        <div class="col-md-13 col-10">
+                        <div class="col-md-10 col-10">
                             <input v-if="editingNameItemId === item.id" class="inline-name-input"
                                 v-model="editingNameValue" @blur="commitName(item, product)"
                                 @keyup.enter="commitName(item, product)" @keyup.escape="cancelName" />
@@ -223,7 +217,7 @@ export default {
                         </div>
 
                         <!-- Qty -->
-                        <div class="col-md-4 col-8">
+                        <div class="col-md-7 col-8">
                             <div class="qty-controls">
                                 <button class="qty-btn" @click.stop="adjustQty(item, -10)">−</button>
                                 <span class="qty-val">{{ item.qty }}%</span>
@@ -298,33 +292,41 @@ export default {
 .qty-controls {
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 18px;
 }
 
 .qty-btn {
-    width: 18px;
-    height: 18px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    border: 1px solid currentColor;
-    background: transparent;
-    color: inherit;
-    font-size: 0.8rem;
+    border: none;
+    font-size: 1.2rem;
+    font-weight: 700;
     line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
-    opacity: 0.6;
+    color: #fff;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.15);
+    transition: background 0.15s ease, transform 0.1s ease;
 
     &:hover {
-        opacity: 1;
+        background: rgba(0, 0, 0, 0.28);
+        transform: scale(1.08);
+    }
+
+    &:active {
+        transform: scale(0.93);
     }
 }
 
 .qty-val {
-    font-size: 0.75rem;
-    min-width: 30px;
+    font-size: medium;
+    width: 32px;
     text-align: center;
 }
 
@@ -334,11 +336,17 @@ export default {
 
 // Draggable row
 .product {
-    cursor: grab;
-
     &.row-dragging {
         opacity: 0.35;
     }
+}
+
+.drag-handle {
+    cursor: grab;
+}
+
+.edit.dropdown {
+    cursor: pointer;
 }
 
 // Category pill drop target highlight
@@ -372,103 +380,50 @@ export default {
     align-items: center;
     gap: 4px;
 
-    .duration-input {
-        display: flex;
-        align-items: center;
-        padding-left: 0;
-        flex-shrink: 0;
-
-        .duration-number {
-            width: 28px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            font-family: 'Quicksand';
-            border: none;
-            border-bottom: 1px solid currentColor;
-            background: transparent;
-            color: inherit;
-            text-align: center;
-            position: static;
-            left: 0;
-
-            &:focus {
-                outline: none;
-            }
-        }
-
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        .unit-switcher {
-            display: flex;
-            align-items: center;
-            gap: 1px;
-            position: static;
-            left: 0;
-
-            .unit-display {
-                width: 72px;
-                height: 1rem;
-                overflow: hidden;
-            }
-
-            .unit-track {
-                display: flex;
-                transition: transform 0.25s ease;
-
-                span {
-                    flex: 0 0 72px;
-                    font-size: 0.65rem;
-                    text-align: center;
-                    line-height: 1rem;
-                }
-            }
-
-            .unit-arrow {
-                border: none;
-                background: none;
-                cursor: pointer;
-                padding: 0 2px;
-                font-size: 0.5rem;
-                color: inherit;
-                line-height: 1;
-                opacity: 0.7;
-                flex-shrink: 0;
-
-                &:hover {
-                    opacity: 1;
-                }
-            }
-        }
-    }
-
     .exp-confirm-btn,
     .exp-cancel-btn {
+        margin-left: auto;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
         border: none;
-        background: none;
         cursor: pointer;
-        padding: 2px 3px;
-        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        font-size: 1rem;
         line-height: 1;
-        color: inherit;
-        opacity: 0.6;
         flex-shrink: 0;
+        transition: background 0.15s ease, transform 0.1s ease;
 
         &:hover {
-            opacity: 1;
+            transform: scale(1.08);
+        }
+
+        &:active {
+            transform: scale(0.93);
         }
     }
 
     .exp-confirm-btn {
+        background: rgba(76, 175, 80, 0.25);
         color: #4caf50;
-        opacity: 0.85;
+
+        &:hover {
+            background: rgba(76, 175, 80, 0.45);
+        }
     }
 
     .exp-cancel-btn {
-        opacity: 0.45;
+        background: rgba(0, 0, 0, 0.15);
+        color: #fff;
+        opacity: 0.7;
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.28);
+            opacity: 1;
+        }
     }
 }
 
@@ -588,7 +543,7 @@ export default {
     border: none;
     border-radius: 4px;
     color: #fff;
-    font-size: 0.82rem;
+    font-size: 1rem;
     text-align: center;
     padding: 2px;
     margin-left: 4px;
@@ -768,6 +723,38 @@ export default {
         stroke-dashoffset: 0;
     }
 
+}
+
+.td {
+    vertical-align: middle;
+    border: 2px solid transparent;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+        border-color: var(--border-subtle);
+    }
+}
+
+.batch-header-open {
+    background: var(--surface3);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.batch-row {
+    background: var(--surface);
+}
+
+.slide-enter-active,
+.slide-leave-active {
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+    max-height: 200px;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+    max-height: 0;
+    opacity: 0;
 }
 
 .trash {

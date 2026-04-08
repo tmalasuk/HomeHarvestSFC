@@ -26,8 +26,8 @@ export default {
 
         <div class="row table-header" v-show="!isMobile">
             <div class="col-1"></div>
-            <div class="col-md-13">Name</div>
-            <div class="col-md-4">Qty</div>
+            <div class="col-md-10">Name</div>
+            <div class="col-md-7" style="display:flex;justify-content:center">Qty</div>
             <div class="col-md-7">Exp</div>
             <div class="col-md-7">Category</div>
             <div class="col-md-3" style="display:flex;justify-content:center">Trash</div>
@@ -70,4 +70,55 @@ export default {
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.inventory-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    padding: 16px;
+}
+
+.inventory-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    opacity: 0.4;
+    font-size: 0.85rem;
+}
+
+.inventory {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: medium;
+    max-height: 55vh;
+    min-height: 55vh;
+    overflow: auto;
+    scroll-behavior: smooth;
+    font-family: "Quicksand";
+    font-weight: 500;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--box-shadow);
+
+
+    .table-header {
+        position: sticky;
+        top: 0;
+        font-size: small;
+        font-family: "Oxygen";
+        letter-spacing: 1px;
+        font-weight: 400;
+        text-transform: uppercase;
+        z-index: 1000;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        background-color: var(--border-subtle);
+
+        >div {
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+    }
+
+}
+</style>

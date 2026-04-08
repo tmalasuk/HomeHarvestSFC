@@ -7,7 +7,7 @@ export default{
     emits: ['add-to-pantry', 'add-item', 'add-category', 'edit-category', 'reorder-categories', 'learn-override', 'rename-category'],
 
     props: {
-        shoppingList: { type: Object, required: true },
+        shoppingList: { type: Array, required: true },
         restockShoppingList: { type: Array, required: true },
         categories: { type: Array, required: true },
         units: { type: Array, required: true },
@@ -28,7 +28,7 @@ export default{
     computed: {
         sortedByCat() {
             let sortedArray = this.categories.map(c => ({ ...c, products: [] }));
-            this.shoppingList.products.forEach(p => {
+            this.shoppingList.forEach(p => {
                 let category = sortedArray.find(c => c.name === p.category);
                 if (category) category.products.push(p);
             });
@@ -40,7 +40,7 @@ export default{
         },
 
         filteredShoppingList() {
-            const combined = [...this.shoppingList.products, ...this.restockShoppingList];
+            const combined = [...this.shoppingList, ...this.restockShoppingList];
             if (!this.selectedCategoryGrocery.name) return combined;
             return combined.filter(p => p.category === this.selectedCategoryGrocery.name);
         },
@@ -74,9 +74,9 @@ export default{
             if (product.qty > 1) {
                 product.qty--;
             } else {
-                const index = this.shoppingList.products.findIndex(p => p.id === product.id);
+                const index = this.shoppingList.findIndex(p => p.id === product.id);
                 if (index === -1) return;
-                const [removed] = this.shoppingList.products.splice(index, 1);
+                const [removed] = this.shoppingList.splice(index, 1);
                 if (this.toastTimer) clearTimeout(this.toastTimer);
                 this.deletedItemToast = { item: removed, index };
                 this.toastTimer = setTimeout(() => { this.deletedItemToast = null; }, 5000);
@@ -91,7 +91,7 @@ export default{
             const newCat = this.categories.find(c => c.id === newCatId);
             if (!newCat) return;
 
-            let product = this.shoppingList.products.find(p => p.id === productId);
+            let product = this.shoppingList.find(p => p.id === productId);
             const inRestock = !product;
             if (inRestock) product = this.restockShoppingList.find(p => p.id === productId);
             if (!product) return;
@@ -99,7 +99,7 @@ export default{
             this.$emit('learn-override', { name: product.name, category: newCat.name });
             product.category = newCat.name;
 
-            const list = inRestock ? this.restockShoppingList : this.shoppingList.products;
+            const list = inRestock ? this.restockShoppingList : this.shoppingList;
             list.splice(list.indexOf(product), 1);
 
             const catItems = list.filter(p => p.category === newCat.name);
@@ -121,7 +121,7 @@ export default{
         undoDelete() {
             if (!this.deletedItemToast) return;
             clearTimeout(this.toastTimer);
-            this.shoppingList.products.splice(this.deletedItemToast.index, 0, this.deletedItemToast.item);
+            this.shoppingList.splice(this.deletedItemToast.index, 0, this.deletedItemToast.item);
             this.deletedItemToast = null;
         },
 
@@ -135,36 +135,53 @@ export default{
 
 <!-- // paths must be relative (what file you are currently in)-->
 <template>
-    <grocery-shop-section
-        :sorted-by-cat="sortedByCat"
-        :categories="categories"
-        :filtered-shopping-list="filteredShoppingList"
-        :selected-category-grocery="selectedCategoryGrocery"
-        :is-desktop="isDesktop"
-        :is-mobile="isMobile"
-        :has-bought="boughtItems.length > 0"
-        :units="units"
-        @check-all="checkAllMethod"
-        @select-category="selectCategoryGrocery($event)"
-        @rename-category="$emit('rename-category', $event)"
-        @reorder-categories="$emit('reorder-categories', $event)"
-        @qty-increase="increaseQty($event)"
-        @qty-decrease="lowerQty($event)"
-        @update-expiration="updateExpiration($event)"
-        @add-to-pantry="$emit('add-to-pantry')"
-        @update:selected-category-grocery="selectedCategoryGrocery = $event"
-        @move-item="moveGroceryItem($event)"
-        @add-item="$emit('add-item', $event)">
-    </grocery-shop-section>
+    <div>
+        <grocery-shop-section
+            :sorted-by-cat="sortedByCat"
+            :categories="categories"
+            :filtered-shopping-list="filteredShoppingList"
+            :selected-category-grocery="selectedCategoryGrocery"
+            :is-desktop="isDesktop"
+            :is-mobile="isMobile"
+            :has-bought="boughtItems.length > 0"
+            :units="units"
+            @check-all="checkAllMethod"
+            @select-category="selectCategoryGrocery($event)"
+            @rename-category="$emit('rename-category', $event)"
+            @reorder-categories="$emit('reorder-categories', $event)"
+            @qty-increase="increaseQty($event)"
+            @qty-decrease="lowerQty($event)"
+            @update-expiration="updateExpiration($event)"
+            @add-to-pantry="$emit('add-to-pantry')"
+            @update:selected-category-grocery="selectedCategoryGrocery = $event"
+            @move-item="moveGroceryItem($event)"
+            @add-item="$emit('add-item', $event)">
+        </grocery-shop-section>
 
-    <transition name="toast-slide">
-        <div class="delete-toast" v-if="deletedItemToast">
-            <span class="toast-msg"><i class="bi bi-trash3"></i> <strong>{{ deletedItemToast.item.name }}</strong> removed</span>
-            <button class="toast-undo" @click="undoDelete">Undo</button>
-            <button class="toast-close" @click="dismissToast"><i class="bi bi-x"></i></button>
-        </div>
-    </transition>
+        <teleport to="body">
+            <transition name="toast-slide">
+                <div class="delete-toast" v-if="deletedItemToast">
+                    <span class="toast-msg"><i class="bi bi-trash3"></i> <strong>{{ deletedItemToast.item.name }}</strong> removed</span>
+                    <button class="toast-undo" @click="undoDelete">Undo</button>
+                    <button class="toast-close" @click="dismissToast"><i class="bi bi-x"></i></button>
+                </div>
+            </transition>
+        </teleport>
+    </div>
 </template>
+
+<style lang="scss">
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast-slide-enter-from,
+.toast-slide-leave-to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+}
+</style>
 
 <style lang="scss" scoped>
 .delete-toast {

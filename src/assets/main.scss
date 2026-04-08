@@ -4,20 +4,89 @@
 @import "bootstrap/scss/bootstrap";
 @import "bootstrap-icons/font/bootstrap-icons.css";
 
-//---------- GOOGLE FONTS
+//---------- FONTS
 
-//TODO: download these
-//button font
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
-//logo font
-@import url('https://fonts.googleapis.com/css2?family=Libre+Barcode+128+Text&display=swap');
-//header font
-@import url('https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap');
-//body font
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
-//categories font
-@import url('https://fonts.googleapis.com/css2?family=Playwrite+NL:wght@100..400&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&display=swap');
+// Inter
+@font-face {
+    font-family: 'Inter';
+    src: url('./Fonts/Inter/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Inter';
+    src: url('./Fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: italic;
+}
+
+// Oxygen
+@font-face {
+    font-family: 'Oxygen';
+    src: url('./Fonts/Oxygen/Oxygen-Light.ttf') format('truetype');
+    font-weight: 300;
+}
+@font-face {
+    font-family: 'Oxygen';
+    src: url('./Fonts/Oxygen/Oxygen-Regular.ttf') format('truetype');
+    font-weight: 400;
+}
+@font-face {
+    font-family: 'Oxygen';
+    src: url('./Fonts/Oxygen/Oxygen-Bold.ttf') format('truetype');
+    font-weight: 700;
+}
+
+// Quicksand
+@font-face {
+    font-family: 'Quicksand';
+    src: url('./Fonts/Quicksand/Quicksand-VariableFont_wght.ttf') format('truetype');
+    font-weight: 300 700;
+}
+
+// Poppins
+@font-face {
+    font-family: 'Poppins';
+    src: url('./Fonts/Poppins/Poppins-Regular.ttf') format('truetype');
+    font-weight: 400;
+}
+@font-face {
+    font-family: 'Poppins';
+    src: url('./Fonts/Poppins/Poppins-Medium.ttf') format('truetype');
+    font-weight: 500;
+}
+@font-face {
+    font-family: 'Poppins';
+    src: url('./Fonts/Poppins/Poppins-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+}
+@font-face {
+    font-family: 'Poppins';
+    src: url('./Fonts/Poppins/Poppins-Bold.ttf') format('truetype');
+    font-weight: 700;
+}
+
+// BJ Cree (logo font)
+@font-face {
+    font-family: 'BJ Cree';
+    src: url('./Fonts/BJ_Cree/BJCree-Regular.ttf') format('truetype');
+    font-weight: 400;
+}
+@font-face {
+    font-family: 'BJ Cree';
+    src: url('./Fonts/BJ_Cree/BJCree-Medium.ttf') format('truetype');
+    font-weight: 500;
+}
+@font-face {
+    font-family: 'BJ Cree';
+    src: url('./Fonts/BJ_Cree/BJCree-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+}
+@font-face {
+    font-family: 'BJ Cree';
+    src: url('./Fonts/BJ_Cree/BJCree-Bold.ttf') format('truetype');
+    font-weight: 700;
+}
 
 //global
 
@@ -53,7 +122,7 @@ html {
 
 
 main {
-
+    background-color: var(--bg2);
     min-height: 100vh;
 
     .wrapper {
@@ -92,14 +161,15 @@ main {
 
             .logo-home {
                 font-family: "Poppins", sans-serif;
-                font-weight: 400;
-                font-size: 0.75em;
+                font-weight: 700;
+                font-size: .8em;
+                color: var(--logo-home);
             }
 
             .logo-harvest {
-                font-family: "Sacramento", cursive;
+                font-family: "BJ Cree", cursive;
                 font-weight: 400;
-                margin-left: -0.1em;
+                color: var(--logo-harvest);
             }
         }
     }
@@ -180,10 +250,11 @@ section {
     position: relative;
     display: inline-flex;
     align-items: stretch;
+
 }
 
 .suggest-dropdown {
-    width: 240px;
+    background-color: rgb(233, 231, 231);
     position: absolute;
     top: 100%;
     left: 0;
@@ -194,7 +265,6 @@ section {
     padding: 6px 0 10px;
     border-radius: 0 0 20px 20px;
     overflow: hidden;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
 }
 
 .suggest-drop-enter-active {
@@ -227,4 +297,12 @@ section {
     opacity: 0;
     animation: suggest-item-in 0.18s ease forwards;
     transition: background-color 0.1s;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.07);
+    }
+
+    &.active {
+        background-color: rgba(0, 0, 0, 0.12);
+    }
 }

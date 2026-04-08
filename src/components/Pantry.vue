@@ -26,10 +26,20 @@ export default {
             pantryAddHighlightedIdx: -1,
             pantryAddShowSuggestions: false,
             dragOverCatId: null,
+            pillDrag: { active: false, startX: 0, scrollLeft: 0, moved: false },
         };
     },
 
     computed: {
+        occupiedCategories() {
+            const names = new Set(this.products.map(p => p.category));
+            const occupied = this.categories.filter(c => names.has(c.name));
+            if (this.selectedCategory && !names.has(this.selectedCategory.name)) {
+                this.selectedCategory = null;
+            }
+            return occupied;
+        },
+
         pantryTable() {
             let products = this.products;
 
@@ -57,7 +67,29 @@ export default {
 
     methods: {
         selectCategory(category) {
+            if (this.pillDrag.moved) { this.pillDrag.moved = false; return; }
             this.selectedCategory = category;
+        },
+
+        onPillMousedown(e) {
+            const el = this.$refs.categoryPills;
+            this.pillDrag.active = true;
+            this.pillDrag.moved = false;
+            this.pillDrag.startX = e.pageX - el.offsetLeft;
+            this.pillDrag.scrollLeft = el.scrollLeft;
+        },
+
+        onPillMousemove(e) {
+            if (!this.pillDrag.active) return;
+            const el = this.$refs.categoryPills;
+            const x = e.pageX - el.offsetLeft;
+            const walk = x - this.pillDrag.startX;
+            if (Math.abs(walk) > 5) this.pillDrag.moved = true;
+            el.scrollLeft = this.pillDrag.scrollLeft - walk;
+        },
+
+        onPillMouseup() {
+            this.pillDrag.active = false;
         },
 
         selectMetaFilter(filter) {
@@ -146,6 +178,7 @@ export default {
                     </ul>
                 </transition>
             </div>
+            <h2 class="pantry-title"><i class="bi bi-leaf"></i> Your Pantry Items <i class="bi bi-leaf flip"></i></h2>
             <div class="header-right">
                 <form class="desktop-search" role="search" @submit.prevent>
                     <input type="text" class="form-control ps-5" placeholder="Search" v-model="searchQuery">
@@ -163,10 +196,15 @@ export default {
                 <button class="cat-pill meta-pill" :class="{ active: selectedMetaFilter === 'low-qty' }"
                     @click="selectMetaFilter('low-qty')">Low Qty</button>
             </div>
-            <div class="category-pills">
+            <div class="category-pills" ref="categoryPills"
+                :class="{ dragging: pillDrag.active }"
+                @mousedown="onPillMousedown"
+                @mousemove="onPillMousemove"
+                @mouseup="onPillMouseup"
+                @mouseleave="onPillMouseup">
                 <button class="cat-pill" :class="{ active: selectedCategory === null }"
                     @click="selectCategory(null)">All</button>
-                <button v-for="cat in categories" :key="cat.id" class="cat-pill"
+                <button v-for="cat in occupiedCategories" :key="cat.id" class="cat-pill"
                     :class="{ active: selectedCategory && selectedCategory.id === cat.id, 'pill-drop-over': dragOverCatId === cat.id }"
                     @click="selectCategory(cat)" @dragover.prevent="dragOverCatId = cat.id"
                     @dragleave="dragOverCatId = null" @drop.prevent="dropOnCategory(cat, $event)">{{ cat.name
@@ -183,6 +221,15 @@ export default {
 
 <style lang="scss" scoped>
 @use "@/assets/variables" as *;
+
+
+#pantry {
+    box-shadow: var(--box-shadow);
+    margin-top: 50px;
+    padding: 30px;
+    background-color: var(--bg);
+    border-radius: 15px;
+}
 
 .desktop-search {
     position: relative;
@@ -205,11 +252,33 @@ button {
 }
 
 header {
+    position: relative;
     display: flex;
     align-items: center;
     padding-left: 30px;
     padding-right: 30px;
-    padding-bottom: 5px;
+    padding-bottom: 20px;
+}
+
+.pantry-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+
+    .flip {
+        transform: scaleX(-1);
+    }
 }
 
 .pantry-add-input {
@@ -217,19 +286,16 @@ header {
     border-radius: 50px;
     padding: 10px 18px;
     font-family: 'Inter', sans-serif;
-    font-size: 0.75rem;
+    font-size: 1rem;
     outline: none;
-    margin-right: 30px;
-    width: 240px;
-    transition: width 0.2s ease, border-radius 0.15s ease;
-
-    &:focus {
-        width: 320px;
-    }
+    width: 100%;
+    transition: border-radius 0.15s ease;
+    background-color: rgb(233, 231, 231);
 }
 
 .suggest-wrap {
     width: 240px;
+    margin-right: 30px;
     transition: width 0.2s ease;
 
     &:focus-within {
@@ -272,6 +338,7 @@ header {
     padding-right: 18px;
     font-family: 'Inter', sans-serif;
     font-size: 0.75rem;
+    background-color: rgb(233, 231, 231);
 
     &:focus {
         box-shadow: none;
@@ -279,7 +346,7 @@ header {
 }
 
 .pill-filters {
-    padding: 8px 30px;
+    padding: 20px 30px;
     position: relative;
 
     &::before {
@@ -300,6 +367,12 @@ header {
     overflow-x: auto;
     padding: 4px 0;
     scrollbar-width: none;
+    cursor: grab;
+    user-select: none;
+
+    &.dragging {
+        cursor: grabbing;
+    }
 
     &::-webkit-scrollbar {
         display: none;
@@ -307,8 +380,11 @@ header {
 }
 
 .meta-pills {
-    padding: 0;
+    display: flex;
+    padding-top: 20px;
+    padding-bottom: 10px;
     position: relative;
+    gap: 8px;
 }
 
 .cat-pill {
@@ -317,7 +393,7 @@ header {
     border-radius: 20px;
     padding: 5px 14px;
     font-family: 'Oxygen';
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 400;
     cursor: pointer;
     color: var(--text-muted);
@@ -337,104 +413,5 @@ header {
     }
 }
 
-.inventory {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    font-size: x-small;
-    max-height: 50vh;
-    min-height: 50vh;
-    overflow: auto;
-    scroll-behavior: smooth;
-    font-family: "Quicksand";
-    font-weight: 500;
-    border: 1px solid #c7c5c5;
-
-
-    .table-header {
-        position: sticky;
-        top: 0;
-        font-size: 0.5rem;
-        font-family: "Oxygen";
-        letter-spacing: 1px;
-        font-weight: 400;
-        text-transform: uppercase;
-        z-index: 1000;
-        padding-top: 2px !important;
-        padding-bottom: 2px !important;
-
-        > div {
-            padding-top: 0;
-            padding-bottom: 0;
-        }
-    }
-
-    
-
-    .td {
-        vertical-align: middle;
-
-
-
-        &:hover {
-            box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
-
-            .edit>i {
-                opacity: 1;
-            }
-        }
-
-        .edit {
-            cursor: pointer;
-        }
-
-    }
-
-    
-
-    i {
-        margin: 0 auto;
-
-        &.trash {
-            color: var(--danger);
-        }
-
-        &.restock {
-            color: var(--success);
-        }
-
-        &.edit:not(.bi-chevron-up) {
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
-
-        }
-
-        &.edit {
-            font-size: 1.2em;
-        }
-
-    }
-
-    .batch-row {
-        .row:hover {
-            box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
-
-            .edit>i {
-                opacity: 1;
-            }
-        }
-
-        &.edit:not(.bi-chevron-up) {
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
-
-        }
-
-
-
-        
-    }
-
-}
 
 </style>

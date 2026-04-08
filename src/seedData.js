@@ -1,301 +1,211 @@
-// Seed data with dates relative to today so they never go stale for demos.
+import PantryProduct from './models/PantryProduct.js';
+import PantryItem from './models/PantryItem.js';
+import ShoppingItem from './models/ShoppingItem.js';
+import Recipe from './models/Recipe.js';
 
-const today = () => new Date();
 const daysFromNow = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
 const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 
-// ─── Pantry ──────────────────────────────────────────────────────────────────
+// helper: build a PantryProduct with a pre-filled batch
+function makeProduct(name, category, restock, restockQty, items) {
+    const p = new PantryProduct(name, category);
+    p.restock = restock;
+    p.restockQty = restockQty ?? 1;
+    p.batch = items;
+    return p;
+}
+
+// helper: build a PantryItem
+function makeItem(name, category, qty, daysAdded, daysExp) {
+    return new PantryItem(name, category, qty, daysFromNow(daysExp), daysAgo(daysAdded));
+}
+
+// helper: build a ShoppingItem with overrides
+function makeShoppingItem(name, category, qty, durationValue, selectedUnit) {
+    const item = new ShoppingItem(name, category, qty);
+    item.durationValue = durationValue;
+    item.selectedUnit = selectedUnit;
+    return item;
+}
+
+// ─── Pantry ───────────────────────────────────────────────────────────────────
 // Items tagged EXPIRING: expiration <= 3 days → triggers "Expiring Soon" filter
 // Items tagged LOW QTY:  single batch, qty < 50 → triggers "Low Qty" filter
 
 export const seedPantryProducts = [
 
     // ── Dairy ──────────────────────────────────────────────────────────────
-    {
-        id: 1, name: 'Milk', category: 'Dairy', restock: true, restockQty: 1, isOpen: false,
-        batch: [
-            { id: 1, name: 'Milk', category: 'Dairy', dateAdded: daysAgo(10), expiration: daysFromNow(2), qty: 30 },  // EXPIRING + low in this batch
-            { id: 2, name: 'Milk', category: 'Dairy', dateAdded: daysAgo(3),  expiration: daysFromNow(12), qty: 100 },
-        ]
-    },
-    {
-        id: 2, name: 'Yogurt', category: 'Dairy', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Yogurt', category: 'Dairy', dateAdded: daysAgo(5), expiration: daysFromNow(1), qty: 60 }, // EXPIRING
-        ]
-    },
-    {
-        id: 3, name: 'Eggs', category: 'Dairy', restock: true, restockQty: 1, isOpen: false,
-        batch: [
-            { id: 1, name: 'Eggs', category: 'Dairy', dateAdded: daysAgo(7), expiration: daysFromNow(14), qty: 75 },
-        ]
-    },
-    {
-        id: 4, name: 'Cheddar Cheese', category: 'Dairy', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Cheddar Cheese', category: 'Dairy', dateAdded: daysAgo(2), expiration: daysFromNow(21), qty: 85 },
-        ]
-    },
-    {
-        id: 5, name: 'Butter', category: 'Dairy', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Butter', category: 'Dairy', dateAdded: daysAgo(14), expiration: daysFromNow(45), qty: 40 }, // LOW QTY
-        ]
-    },
-    {
-        id: 6, name: 'Sour Cream', category: 'Dairy', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Sour Cream', category: 'Dairy', dateAdded: daysAgo(8), expiration: daysFromNow(2), qty: 20 }, // EXPIRING + LOW QTY
-        ]
-    },
+    makeProduct('Milk', 'Dairy', true, 1, [
+        makeItem('Milk', 'Dairy', 30, 10, 2),   // EXPIRING + LOW QTY
+        makeItem('Milk', 'Dairy', 100, 3, 12),
+    ]),
+    makeProduct('Yogurt', 'Dairy', false, 1, [
+        makeItem('Yogurt', 'Dairy', 60, 5, 1),  // EXPIRING
+    ]),
+    makeProduct('Eggs', 'Dairy', true, 1, [
+        makeItem('Eggs', 'Dairy', 75, 7, 14),
+    ]),
+    makeProduct('Cheddar Cheese', 'Dairy', false, 1, [
+        makeItem('Cheddar Cheese', 'Dairy', 85, 2, 21),
+    ]),
+    makeProduct('Butter', 'Dairy', false, 1, [
+        makeItem('Butter', 'Dairy', 40, 14, 45), // LOW QTY
+    ]),
+    makeProduct('Sour Cream', 'Dairy', false, 1, [
+        makeItem('Sour Cream', 'Dairy', 20, 8, 2), // EXPIRING + LOW QTY
+    ]),
 
     // ── Produce ────────────────────────────────────────────────────────────
-    {
-        id: 10, name: 'Strawberries', category: 'Produce', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Strawberries', category: 'Produce', dateAdded: daysAgo(4), expiration: daysFromNow(2), qty: 45 }, // EXPIRING + LOW QTY
-        ]
-    },
-    {
-        id: 11, name: 'Spinach', category: 'Produce', restock: true, restockQty: 1, isOpen: false,
-        batch: [
-            { id: 1, name: 'Spinach', category: 'Produce', dateAdded: daysAgo(5), expiration: daysFromNow(1), qty: 30 }, // EXPIRING + LOW QTY
-        ]
-    },
-    {
-        id: 12, name: 'Apples', category: 'Produce', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Apples', category: 'Produce', dateAdded: daysAgo(3), expiration: daysFromNow(18), qty: 100 },
-            { id: 2, name: 'Apples', category: 'Produce', dateAdded: daysAgo(3), expiration: daysFromNow(18), qty: 100 },
-            { id: 3, name: 'Apples', category: 'Produce', dateAdded: daysAgo(3), expiration: daysFromNow(18), qty: 100 },
-        ]
-    },
-    {
-        id: 13, name: 'Bananas', category: 'Produce', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Bananas', category: 'Produce', dateAdded: daysAgo(6), expiration: daysFromNow(4), qty: 80 },
-        ]
-    },
-    {
-        id: 14, name: 'Bell Peppers', category: 'Produce', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Bell Peppers', category: 'Produce', dateAdded: daysAgo(2), expiration: daysFromNow(10), qty: 100 },
-        ]
-    },
-    {
-        id: 15, name: 'Avocados', category: 'Produce', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Avocados', category: 'Produce', dateAdded: daysAgo(1), expiration: daysFromNow(3), qty: 100 }, // borderline expiring
-        ]
-    },
+    makeProduct('Strawberries', 'Produce', false, 1, [
+        makeItem('Strawberries', 'Produce', 45, 4, 2), // EXPIRING + LOW QTY
+    ]),
+    makeProduct('Spinach', 'Produce', true, 1, [
+        makeItem('Spinach', 'Produce', 30, 5, 1), // EXPIRING + LOW QTY
+    ]),
+    makeProduct('Apples', 'Produce', false, 1, [
+        makeItem('Apples', 'Produce', 100, 3, 18),
+        makeItem('Apples', 'Produce', 100, 3, 18),
+        makeItem('Apples', 'Produce', 100, 3, 18),
+    ]),
+    makeProduct('Bananas', 'Produce', false, 1, [
+        makeItem('Bananas', 'Produce', 80, 6, 4),
+    ]),
+    makeProduct('Bell Peppers', 'Produce', false, 1, [
+        makeItem('Bell Peppers', 'Produce', 100, 2, 10),
+    ]),
+    makeProduct('Avocados', 'Produce', false, 1, [
+        makeItem('Avocados', 'Produce', 100, 1, 3),
+    ]),
 
     // ── Meat ───────────────────────────────────────────────────────────────
-    {
-        id: 20, name: 'Chicken Breast', category: 'Meat', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Chicken Breast', category: 'Meat', dateAdded: daysAgo(1), expiration: daysFromNow(2), qty: 100 }, // EXPIRING
-        ]
-    },
-    {
-        id: 21, name: 'Ground Beef', category: 'Meat', restock: true, restockQty: 2, isOpen: false,
-        batch: [
-            { id: 1, name: 'Ground Beef', category: 'Meat', dateAdded: daysAgo(3), expiration: daysFromNow(1), qty: 100 }, // EXPIRING
-            { id: 2, name: 'Ground Beef', category: 'Meat', dateAdded: daysAgo(3), expiration: daysFromNow(1), qty: 100 }, // EXPIRING
-        ]
-    },
-    {
-        id: 22, name: 'Salmon', category: 'Meat', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Salmon', category: 'Meat', dateAdded: daysAgo(0), expiration: daysFromNow(30), qty: 100 },
-        ]
-    },
-    {
-        id: 23, name: 'Deli Turkey', category: 'Deli', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Deli Turkey', category: 'Deli', dateAdded: daysAgo(4), expiration: daysFromNow(3), qty: 35 }, // EXPIRING + LOW QTY
-        ]
-    },
+    makeProduct('Chicken Breast', 'Meat', false, 1, [
+        makeItem('Chicken Breast', 'Meat', 100, 1, 2), // EXPIRING
+    ]),
+    makeProduct('Ground Beef', 'Meat', true, 2, [
+        makeItem('Ground Beef', 'Meat', 100, 3, 1), // EXPIRING
+        makeItem('Ground Beef', 'Meat', 100, 3, 1), // EXPIRING
+    ]),
+    makeProduct('Salmon', 'Meat', false, 1, [
+        makeItem('Salmon', 'Meat', 100, 0, 30),
+    ]),
+    makeProduct('Deli Turkey', 'Deli', false, 1, [
+        makeItem('Deli Turkey', 'Deli', 35, 4, 3), // EXPIRING + LOW QTY
+    ]),
 
     // ── Grains ─────────────────────────────────────────────────────────────
-    {
-        id: 30, name: 'Bread', category: 'Grains', restock: true, restockQty: 1, isOpen: false,
-        batch: [
-            { id: 1, name: 'Bread', category: 'Grains', dateAdded: daysAgo(5), expiration: daysFromNow(2), qty: 25 }, // EXPIRING + LOW QTY
-        ]
-    },
-    {
-        id: 31, name: 'Rice', category: 'Grains', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Rice', category: 'Grains', dateAdded: daysAgo(30), expiration: daysFromNow(180), qty: 70 },
-            { id: 2, name: 'Rice', category: 'Grains', dateAdded: daysAgo(10), expiration: daysFromNow(200), qty: 100 },
-        ]
-    },
-    {
-        id: 32, name: 'Pasta', category: 'Grains', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Pasta', category: 'Grains', dateAdded: daysAgo(20), expiration: daysFromNow(365), qty: 100 },
-        ]
-    },
-    {
-        id: 33, name: 'Oats', category: 'Grains', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Oats', category: 'Grains', dateAdded: daysAgo(40), expiration: daysFromNow(90), qty: 20 }, // LOW QTY
-        ]
-    },
+    makeProduct('Bread', 'Grains', true, 1, [
+        makeItem('Bread', 'Grains', 25, 5, 2), // EXPIRING + LOW QTY
+    ]),
+    makeProduct('Rice', 'Grains', false, 1, [
+        makeItem('Rice', 'Grains', 70, 30, 180),
+        makeItem('Rice', 'Grains', 100, 10, 200),
+    ]),
+    makeProduct('Pasta', 'Grains', false, 1, [
+        makeItem('Pasta', 'Grains', 100, 20, 365),
+    ]),
+    makeProduct('Oats', 'Grains', false, 1, [
+        makeItem('Oats', 'Grains', 20, 40, 90), // LOW QTY
+    ]),
 
     // ── Frozen ─────────────────────────────────────────────────────────────
-    {
-        id: 40, name: 'Frozen Pizza', category: 'Frozen', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Frozen Pizza', category: 'Frozen', dateAdded: daysAgo(14), expiration: daysFromNow(90), qty: 100 },
-            { id: 2, name: 'Frozen Pizza', category: 'Frozen', dateAdded: daysAgo(14), expiration: daysFromNow(90), qty: 100 },
-        ]
-    },
-    {
-        id: 41, name: 'Ice Cream', category: 'Frozen', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Ice Cream', category: 'Frozen', dateAdded: daysAgo(21), expiration: daysFromNow(60), qty: 30 }, // LOW QTY
-        ]
-    },
-    {
-        id: 42, name: 'Edamame', category: 'Frozen', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Edamame', category: 'Frozen', dateAdded: daysAgo(7), expiration: daysFromNow(120), qty: 100 },
-        ]
-    },
+    makeProduct('Frozen Pizza', 'Frozen', false, 1, [
+        makeItem('Frozen Pizza', 'Frozen', 100, 14, 90),
+        makeItem('Frozen Pizza', 'Frozen', 100, 14, 90),
+    ]),
+    makeProduct('Ice Cream', 'Frozen', false, 1, [
+        makeItem('Ice Cream', 'Frozen', 30, 21, 60), // LOW QTY
+    ]),
+    makeProduct('Edamame', 'Frozen', false, 1, [
+        makeItem('Edamame', 'Frozen', 100, 7, 120),
+    ]),
 
     // ── Canned Goods ───────────────────────────────────────────────────────
-    {
-        id: 50, name: 'Black Beans', category: 'Canned Goods', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Black Beans', category: 'Canned Goods', dateAdded: daysAgo(60), expiration: daysFromNow(730), qty: 100 },
-            { id: 2, name: 'Black Beans', category: 'Canned Goods', dateAdded: daysAgo(60), expiration: daysFromNow(730), qty: 100 },
-            { id: 3, name: 'Black Beans', category: 'Canned Goods', dateAdded: daysAgo(60), expiration: daysFromNow(730), qty: 100 },
-        ]
-    },
-    {
-        id: 51, name: 'Crushed Tomatoes', category: 'Canned Goods', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Crushed Tomatoes', category: 'Canned Goods', dateAdded: daysAgo(45), expiration: daysFromNow(700), qty: 100 },
-            { id: 2, name: 'Crushed Tomatoes', category: 'Canned Goods', dateAdded: daysAgo(45), expiration: daysFromNow(700), qty: 100 },
-        ]
-    },
-    {
-        id: 52, name: 'Chicken Broth', category: 'Canned Goods', restock: true, restockQty: 2, isOpen: false,
-        batch: [
-            { id: 1, name: 'Chicken Broth', category: 'Canned Goods', dateAdded: daysAgo(90), expiration: daysFromNow(600), qty: 45 }, // LOW QTY
-        ]
-    },
+    makeProduct('Black Beans', 'Canned Goods', false, 1, [
+        makeItem('Black Beans', 'Canned Goods', 100, 60, 730),
+        makeItem('Black Beans', 'Canned Goods', 100, 60, 730),
+        makeItem('Black Beans', 'Canned Goods', 100, 60, 730),
+    ]),
+    makeProduct('Crushed Tomatoes', 'Canned Goods', false, 1, [
+        makeItem('Crushed Tomatoes', 'Canned Goods', 100, 45, 700),
+        makeItem('Crushed Tomatoes', 'Canned Goods', 100, 45, 700),
+    ]),
+    makeProduct('Chicken Broth', 'Canned Goods', true, 2, [
+        makeItem('Chicken Broth', 'Canned Goods', 45, 90, 600), // LOW QTY
+    ]),
 
     // ── Snacks ─────────────────────────────────────────────────────────────
-    {
-        id: 60, name: 'Chips', category: 'Snacks', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Chips', category: 'Snacks', dateAdded: daysAgo(10), expiration: daysFromNow(30), qty: 15 }, // LOW QTY
-        ]
-    },
-    {
-        id: 61, name: 'Granola Bars', category: 'Snacks', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Granola Bars', category: 'Snacks', dateAdded: daysAgo(5), expiration: daysFromNow(60), qty: 100 },
-            { id: 2, name: 'Granola Bars', category: 'Snacks', dateAdded: daysAgo(5), expiration: daysFromNow(60), qty: 100 },
-        ]
-    },
-    {
-        id: 62, name: 'Almonds', category: 'Snacks', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Almonds', category: 'Snacks', dateAdded: daysAgo(20), expiration: daysFromNow(150), qty: 80 },
-        ]
-    },
+    makeProduct('Chips', 'Snacks', false, 1, [
+        makeItem('Chips', 'Snacks', 15, 10, 30), // LOW QTY
+    ]),
+    makeProduct('Granola Bars', 'Snacks', false, 1, [
+        makeItem('Granola Bars', 'Snacks', 100, 5, 60),
+        makeItem('Granola Bars', 'Snacks', 100, 5, 60),
+    ]),
+    makeProduct('Almonds', 'Snacks', false, 1, [
+        makeItem('Almonds', 'Snacks', 80, 20, 150),
+    ]),
 
     // ── Beverages ──────────────────────────────────────────────────────────
-    {
-        id: 70, name: 'Orange Juice', category: 'Beverages', restock: true, restockQty: 1, isOpen: false,
-        batch: [
-            { id: 1, name: 'Orange Juice', category: 'Beverages', dateAdded: daysAgo(6), expiration: daysFromNow(2), qty: 20 }, // EXPIRING + LOW QTY
-        ]
-    },
-    {
-        id: 71, name: 'Almond Milk', category: 'Beverages', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Almond Milk', category: 'Beverages', dateAdded: daysAgo(2), expiration: daysFromNow(20), qty: 100 },
-            { id: 2, name: 'Almond Milk', category: 'Beverages', dateAdded: daysAgo(2), expiration: daysFromNow(20), qty: 100 },
-        ]
-    },
+    makeProduct('Orange Juice', 'Beverages', true, 1, [
+        makeItem('Orange Juice', 'Beverages', 20, 6, 2), // EXPIRING + LOW QTY
+    ]),
+    makeProduct('Almond Milk', 'Beverages', false, 1, [
+        makeItem('Almond Milk', 'Beverages', 100, 2, 20),
+        makeItem('Almond Milk', 'Beverages', 100, 2, 20),
+    ]),
 
     // ── Condiments ─────────────────────────────────────────────────────────
-    {
-        id: 80, name: 'Ketchup', category: 'Condiments', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Ketchup', category: 'Condiments', dateAdded: daysAgo(30), expiration: daysFromNow(180), qty: 60 },
-        ]
-    },
-    {
-        id: 81, name: 'Mustard', category: 'Condiments', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Mustard', category: 'Condiments', dateAdded: daysAgo(60), expiration: daysFromNow(120), qty: 10 }, // LOW QTY
-        ]
-    },
-    {
-        id: 82, name: 'Soy Sauce', category: 'Condiments', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Soy Sauce', category: 'Condiments', dateAdded: daysAgo(45), expiration: daysFromNow(365), qty: 50 },
-        ]
-    },
+    makeProduct('Ketchup', 'Condiments', false, 1, [
+        makeItem('Ketchup', 'Condiments', 60, 30, 180),
+    ]),
+    makeProduct('Mustard', 'Condiments', false, 1, [
+        makeItem('Mustard', 'Condiments', 10, 60, 120), // LOW QTY
+    ]),
+    makeProduct('Soy Sauce', 'Condiments', false, 1, [
+        makeItem('Soy Sauce', 'Condiments', 50, 45, 365),
+    ]),
 
     // ── Breakfast ──────────────────────────────────────────────────────────
-    {
-        id: 90, name: 'Cereal', category: 'Breakfast', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Cereal', category: 'Breakfast', dateAdded: daysAgo(14), expiration: daysFromNow(45), qty: 35 }, // LOW QTY
-        ]
-    },
-    {
-        id: 91, name: 'Pancake Mix', category: 'Breakfast', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Pancake Mix', category: 'Breakfast', dateAdded: daysAgo(10), expiration: daysFromNow(200), qty: 100 },
-        ]
-    },
-    {
-        id: 92, name: 'Maple Syrup', category: 'Breakfast', restock: false, isOpen: false,
-        batch: [
-            { id: 1, name: 'Maple Syrup', category: 'Breakfast', dateAdded: daysAgo(30), expiration: daysFromNow(365), qty: 40 }, // LOW QTY
-        ]
-    },
+    makeProduct('Cereal', 'Breakfast', false, 1, [
+        makeItem('Cereal', 'Breakfast', 35, 14, 45), // LOW QTY
+    ]),
+    makeProduct('Pancake Mix', 'Breakfast', false, 1, [
+        makeItem('Pancake Mix', 'Breakfast', 100, 10, 200),
+    ]),
+    makeProduct('Maple Syrup', 'Breakfast', false, 1, [
+        makeItem('Maple Syrup', 'Breakfast', 40, 30, 365), // LOW QTY
+    ]),
 ];
 
 // ─── Shopping List ────────────────────────────────────────────────────────────
 export const seedShoppingProducts = [
-    { id: 1,  name: 'Milk',              qty: 1, category: 'Dairy',       expiration: daysFromNow(14), action: false, bought: false, durationValue: 2, selectedUnit: 1 },
-    { id: 2,  name: 'Eggs',              qty: 1, category: 'Dairy',       expiration: daysFromNow(21), action: false, bought: false, durationValue: 2, selectedUnit: 1 },
-    { id: 3,  name: 'Yogurt',            qty: 2, category: 'Dairy',       expiration: daysFromNow(10), action: false, bought: false, durationValue: 1, selectedUnit: 1 },
-    { id: 4,  name: 'Strawberries',      qty: 1, category: 'Produce',     expiration: daysFromNow(7),  action: false, bought: false, durationValue: 1, selectedUnit: 1 },
-    { id: 5,  name: 'Spinach',           qty: 1, category: 'Produce',     expiration: daysFromNow(7),  action: false, bought: false, durationValue: 1, selectedUnit: 1 },
-    { id: 6,  name: 'Bananas',           qty: 1, category: 'Produce',     expiration: daysFromNow(5),  action: false, bought: false, durationValue: 1, selectedUnit: 1 },
-    { id: 7,  name: 'Chicken Breast',    qty: 2, category: 'Meat',        expiration: daysFromNow(5),  action: false, bought: false, durationValue: 1, selectedUnit: 1 },
-    { id: 8,  name: 'Ground Beef',       qty: 2, category: 'Meat',        expiration: daysFromNow(5),  action: false, bought: false, durationValue: 1, selectedUnit: 1 },
-    { id: 9,  name: 'Bread',             qty: 1, category: 'Grains',      expiration: daysFromNow(7),  action: false, bought: false, durationValue: 1, selectedUnit: 1 },
-    { id: 10, name: 'Chips',             qty: 2, category: 'Snacks',      expiration: daysFromNow(60), action: false, bought: false, durationValue: 2, selectedUnit: 2 },
-    { id: 11, name: 'Orange Juice',      qty: 1, category: 'Beverages',   expiration: daysFromNow(14), action: false, bought: false, durationValue: 2, selectedUnit: 1 },
-    { id: 12, name: 'Ketchup',           qty: 1, category: 'Condiments',  expiration: daysFromNow(90), action: false, bought: false, durationValue: 6, selectedUnit: 2 },
-    { id: 13, name: 'Mustard',           qty: 1, category: 'Condiments',  expiration: daysFromNow(90), action: false, bought: false, durationValue: 6, selectedUnit: 2 },
-    { id: 14, name: 'Frozen Pizza',      qty: 2, category: 'Frozen',      expiration: daysFromNow(90), action: false, bought: false, durationValue: 3, selectedUnit: 2 },
-    { id: 15, name: 'Black Beans',       qty: 4, category: 'Canned Goods', expiration: daysFromNow(730), action: false, bought: false, durationValue: 2, selectedUnit: 3 },
-    { id: 16, name: 'Cereal',            qty: 1, category: 'Breakfast',   expiration: daysFromNow(45), action: false, bought: false, durationValue: 6, selectedUnit: 1 },
-    { id: 17, name: 'Deli Turkey',       qty: 1, category: 'Deli',        expiration: daysFromNow(7),  action: false, bought: false, durationValue: 1, selectedUnit: 1 },
-    { id: 18, name: 'Oats',              qty: 1, category: 'Grains',      expiration: daysFromNow(90), action: false, bought: false, durationValue: 3, selectedUnit: 2 },
+    makeShoppingItem('Milk',           'Dairy',        1, 2, 1),
+    makeShoppingItem('Eggs',           'Dairy',        1, 2, 1),
+    makeShoppingItem('Yogurt',         'Dairy',        2, 1, 1),
+    makeShoppingItem('Strawberries',   'Produce',      1, 1, 1),
+    makeShoppingItem('Spinach',        'Produce',      1, 1, 1),
+    makeShoppingItem('Bananas',        'Produce',      1, 1, 1),
+    makeShoppingItem('Chicken Breast', 'Meat',         2, 1, 1),
+    makeShoppingItem('Ground Beef',    'Meat',         2, 1, 1),
+    makeShoppingItem('Bread',          'Grains',       1, 1, 1),
+    makeShoppingItem('Chips',          'Snacks',       2, 2, 2),
+    makeShoppingItem('Ketchup',        'Condiments',   1, 6, 2),
+    makeShoppingItem('Mustard',        'Condiments',   1, 6, 2),
+    makeShoppingItem('Frozen Pizza',   'Frozen',       2, 3, 2),
+    makeShoppingItem('Black Beans',    'Canned Goods', 4, 2, 3),
+    makeShoppingItem('Cereal',         'Breakfast',    1, 6, 1),
+    makeShoppingItem('Deli Turkey',    'Deli',         1, 1, 1),
+    makeShoppingItem('Oats',           'Grains',       1, 3, 2),
 ];
 
 // ─── Recipes ──────────────────────────────────────────────────────────────────
 export const seedRecipes = [
-    {
-        id: 1,
-        name: 'Honey Garlic Chicken',
-        description: 'Tender pan-seared chicken glazed with a sweet and savory honey garlic sauce.',
-        tags: ['chicken', 'quick', 'savory'],
-        prepTime: 10, cookTime: 20, servings: 4,
-        categories: ['Dinner', 'Meat', 'Quick'], source: 'ai',
-        ingredients: [
+    new Recipe(
+        'Honey Garlic Chicken',
+        'Tender pan-seared chicken glazed with a sweet and savory honey garlic sauce.',
+        4, 10, 20,
+        ['Dinner', 'Meat', 'Quick'],
+        [
             { name: 'Chicken', qty: 2, unit: 'lbs', category: 'Meat' },
             { name: 'Garlic', qty: 4, unit: 'cloves', category: 'Produce' },
             { name: 'Honey', qty: 3, unit: 'tbsp', category: 'Misc' },
@@ -303,44 +213,40 @@ export const seedRecipes = [
             { name: 'Butter', qty: 1, unit: 'tbsp', category: 'Dairy' },
             { name: 'Olive Oil', qty: 1, unit: 'tbsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Season chicken with salt and pepper on both sides.',
             'Heat olive oil in a large skillet over medium-high heat.',
             'Sear chicken for 6–7 minutes per side until golden and cooked through. Remove and set aside.',
             'In the same pan, melt butter and sauté garlic for 1 minute.',
             'Add honey and soy sauce, stir and simmer 2 minutes until slightly thickened.',
             'Return chicken to the pan, coat in sauce, and serve.',
-        ],
-    },
-    {
-        id: 2,
-        name: 'Strawberry Yogurt Parfait',
-        description: 'A quick layered breakfast with creamy yogurt, fresh strawberries, and crunchy granola.',
-        tags: ['breakfast', 'quick', 'no-cook', 'strawberry'],
-        prepTime: 5, cookTime: 0, servings: 1,
-        categories: ['Breakfast', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Strawberry Yogurt Parfait',
+        'A quick layered breakfast with creamy yogurt, fresh strawberries, and crunchy granola.',
+        1, 5, 0,
+        ['Breakfast', 'Quick'],
+        [
             { name: 'Yogurt', qty: 1, unit: 'cup', category: 'Dairy' },
             { name: 'Strawberries', qty: 0.5, unit: 'cup', category: 'Produce' },
             { name: 'Granola', qty: 0.25, unit: 'cup', category: 'Grains' },
             { name: 'Honey', qty: 1, unit: 'tsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Wash and slice strawberries.',
             'Spoon half the yogurt into a glass or bowl.',
             'Add a layer of strawberries and granola.',
             'Repeat layers with remaining yogurt and toppings.',
             'Drizzle with honey and serve immediately.',
-        ],
-    },
-    {
-        id: 3,
-        name: 'French Toast',
-        description: 'Classic thick-cut French toast with a custardy egg-and-milk soak, served with maple syrup.',
-        tags: ['breakfast', 'bread', 'quick'],
-        prepTime: 5, cookTime: 10, servings: 2,
-        categories: ['Breakfast', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'French Toast',
+        'Classic thick-cut French toast with a custardy egg-and-milk soak, served with maple syrup.',
+        2, 5, 10,
+        ['Breakfast', 'Quick'],
+        [
             { name: 'Bread', qty: 4, unit: 'slices', category: 'Grains' },
             { name: 'Eggs', qty: 2, unit: 'whole', category: 'Dairy' },
             { name: 'Milk', qty: 0.25, unit: 'cup', category: 'Dairy' },
@@ -348,22 +254,20 @@ export const seedRecipes = [
             { name: 'Butter', qty: 1, unit: 'tbsp', category: 'Dairy' },
             { name: 'Maple Syrup', qty: 2, unit: 'tbsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Whisk together eggs, milk, and cinnamon in a shallow bowl.',
             'Heat a skillet over medium heat and melt butter.',
             'Dip each bread slice in the egg mixture, coating both sides.',
             'Cook for 2–3 minutes per side until golden brown.',
             'Serve warm with maple syrup.',
-        ],
-    },
-    {
-        id: 4,
-        name: 'Apple Cinnamon Oatmeal',
-        description: 'Warm stovetop oatmeal with sautéed apple, brown sugar, and cinnamon.',
-        tags: ['breakfast', 'apple', 'quick'],
-        prepTime: 5, cookTime: 10, servings: 2,
-        categories: ['Breakfast', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Apple Cinnamon Oatmeal',
+        'Warm stovetop oatmeal with sautéed apple, brown sugar, and cinnamon.',
+        2, 5, 10,
+        ['Breakfast', 'Quick'],
+        [
             { name: 'Apple', qty: 1, unit: 'whole', category: 'Produce' },
             { name: 'Oats', qty: 1, unit: 'cup', category: 'Grains' },
             { name: 'Milk', qty: 1, unit: 'cup', category: 'Dairy' },
@@ -371,22 +275,20 @@ export const seedRecipes = [
             { name: 'Cinnamon', qty: 0.5, unit: 'tsp', category: 'Misc' },
             { name: 'Butter', qty: 1, unit: 'tsp', category: 'Dairy' },
         ],
-        instructions: [
+        [
             'Dice the apple into small cubes.',
             'Melt butter in a small pan, add apple, cinnamon, and brown sugar. Cook 3 minutes.',
             'Meanwhile, combine oats and milk in a saucepan over medium heat.',
             'Cook oats, stirring frequently, until thickened, about 5 minutes.',
             'Top oatmeal with the sautéed apple mixture and serve.',
-        ],
-    },
-    {
-        id: 5,
-        name: 'Chicken Noodle Soup',
-        description: 'Comforting homemade chicken soup with vegetables and egg noodles.',
-        tags: ['chicken', 'soup', 'comfort food'],
-        prepTime: 15, cookTime: 40, servings: 6,
-        categories: ['Dinner', 'Soup', 'Meat', 'Comfort Food'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Chicken Noodle Soup',
+        'Comforting homemade chicken soup with vegetables and egg noodles.',
+        6, 15, 40,
+        ['Dinner', 'Soup', 'Meat', 'Comfort Food'],
+        [
             { name: 'Chicken', qty: 1.5, unit: 'lbs', category: 'Meat' },
             { name: 'Carrots', qty: 3, unit: 'whole', category: 'Produce' },
             { name: 'Onions', qty: 1, unit: 'whole', category: 'Produce' },
@@ -395,23 +297,21 @@ export const seedRecipes = [
             { name: 'Chicken Broth', qty: 6, unit: 'cups', category: 'Canned Goods' },
             { name: 'Olive Oil', qty: 1, unit: 'tbsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Dice onion and carrots. Mince garlic.',
             'Heat oil in a large pot over medium heat. Sauté onion, carrots, and garlic for 5 minutes.',
             'Add chicken and broth. Bring to a boil, then reduce heat and simmer 25 minutes.',
             'Remove chicken, shred with forks, and return to pot.',
             'Add egg noodles and cook another 8 minutes until tender.',
             'Season with salt and pepper and serve hot.',
-        ],
-    },
-    {
-        id: 6,
-        name: 'Spaghetti Bolognese',
-        description: 'A hearty Italian meat sauce slow-simmered with crushed tomatoes over spaghetti.',
-        tags: ['pasta', 'beef', 'savory'],
-        prepTime: 10, cookTime: 35, servings: 4,
-        categories: ['Dinner', 'Pasta', 'Meat'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Spaghetti Bolognese',
+        'A hearty Italian meat sauce slow-simmered with crushed tomatoes over spaghetti.',
+        4, 10, 35,
+        ['Dinner', 'Pasta', 'Meat'],
+        [
             { name: 'Spaghetti Noodles', qty: 12, unit: 'oz', category: 'Grains' },
             { name: 'Ground Beef', qty: 1, unit: 'lb', category: 'Meat' },
             { name: 'Crushed Tomatoes', qty: 1, unit: 'can', category: 'Canned Goods' },
@@ -420,22 +320,20 @@ export const seedRecipes = [
             { name: 'Olive Oil', qty: 1, unit: 'tbsp', category: 'Misc' },
             { name: 'Italian Seasoning', qty: 1, unit: 'tsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Boil salted water and cook spaghetti according to package directions.',
             'Heat olive oil in a skillet. Sauté diced onion and garlic 3 minutes.',
             'Add ground beef, breaking it up, and cook until browned.',
             'Stir in crushed tomatoes and Italian seasoning. Simmer 20 minutes.',
             'Drain pasta and serve topped with meat sauce.',
-        ],
-    },
-    {
-        id: 7,
-        name: 'Black Bean Tacos',
-        description: 'Quick weeknight tacos with seasoned black beans, peppers, and fresh toppings.',
-        tags: ['vegetarian', 'quick', 'tacos'],
-        prepTime: 10, cookTime: 10, servings: 4,
-        categories: ['Lunch', 'Vegetarian', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Black Bean Tacos',
+        'Quick weeknight tacos with seasoned black beans, peppers, and fresh toppings.',
+        4, 10, 10,
+        ['Lunch', 'Vegetarian', 'Quick'],
+        [
             { name: 'Black Beans', qty: 1, unit: 'can', category: 'Canned Goods' },
             { name: 'Peppers', qty: 2, unit: 'whole', category: 'Produce' },
             { name: 'Onions', qty: 0.5, unit: 'whole', category: 'Produce' },
@@ -444,42 +342,38 @@ export const seedRecipes = [
             { name: 'Sour Cream', qty: 0.5, unit: 'cup', category: 'Dairy' },
             { name: 'Lime', qty: 1, unit: 'whole', category: 'Produce' },
         ],
-        instructions: [
+        [
             'Drain and rinse black beans.',
             'Slice peppers and onion into strips. Sauté in oil over medium heat 5 minutes.',
             'Add beans and cumin to the pan. Cook 3 minutes until warmed through.',
             'Warm tortillas in a dry skillet or microwave.',
             'Fill tortillas with bean mixture, top with sour cream and a squeeze of lime.',
-        ],
-    },
-    {
-        id: 8,
-        name: 'Strawberry Smoothie',
-        description: 'A creamy three-ingredient smoothie perfect for using up strawberries before they turn.',
-        tags: ['breakfast', 'quick', 'no-cook', 'strawberry'],
-        prepTime: 5, cookTime: 0, servings: 1,
-        categories: ['Breakfast', 'Drink', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Strawberry Smoothie',
+        'A creamy three-ingredient smoothie perfect for using up strawberries before they turn.',
+        1, 5, 0,
+        ['Breakfast', 'Drink', 'Quick'],
+        [
             { name: 'Strawberries', qty: 1, unit: 'cup', category: 'Produce' },
             { name: 'Yogurt', qty: 0.5, unit: 'cup', category: 'Dairy' },
             { name: 'Milk', qty: 0.5, unit: 'cup', category: 'Dairy' },
             { name: 'Honey', qty: 1, unit: 'tsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Hull and halve strawberries.',
             'Add all ingredients to a blender.',
             'Blend on high for 30–45 seconds until smooth.',
             'Pour into a glass and serve immediately.',
-        ],
-    },
-    {
-        id: 9,
-        name: 'Chicken Fried Rice',
-        description: 'Better-than-takeout fried rice with chicken, eggs, and vegetables.',
-        tags: ['chicken', 'rice', 'savory'],
-        prepTime: 10, cookTime: 15, servings: 4,
-        categories: ['Dinner', 'Meat', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Chicken Fried Rice',
+        'Better-than-takeout fried rice with chicken, eggs, and vegetables.',
+        4, 10, 15,
+        ['Dinner', 'Meat', 'Quick'],
+        [
             { name: 'Chicken', qty: 1, unit: 'lb', category: 'Meat' },
             { name: 'Rice', qty: 2, unit: 'cups cooked', category: 'Grains' },
             { name: 'Eggs', qty: 2, unit: 'whole', category: 'Dairy' },
@@ -488,46 +382,42 @@ export const seedRecipes = [
             { name: 'Soy Sauce', qty: 3, unit: 'tbsp', category: 'Misc' },
             { name: 'Sesame Oil', qty: 1, unit: 'tsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Dice chicken into bite-sized pieces. Season with salt and pepper.',
             'Cook chicken in a wok or large skillet over high heat. Set aside.',
             'In the same pan, scramble the eggs. Push to the side.',
             'Add diced onion and carrots, stir-fry 3 minutes.',
             'Add cold cooked rice, breaking up clumps. Stir-fry 3 minutes.',
             'Return chicken to the pan. Add soy sauce and sesame oil. Toss and serve.',
-        ],
-    },
-    {
-        id: 10,
-        name: 'Mushroom Omelette',
-        description: 'A fluffy three-egg omelette stuffed with sautéed mushrooms and a touch of cheese.',
-        tags: ['breakfast', 'quick', 'eggs'],
-        prepTime: 5, cookTime: 8, servings: 1,
-        categories: ['Breakfast', 'Vegetarian', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Mushroom Omelette',
+        'A fluffy three-egg omelette stuffed with sautéed mushrooms and a touch of cheese.',
+        1, 5, 8,
+        ['Breakfast', 'Vegetarian', 'Quick'],
+        [
             { name: 'Eggs', qty: 3, unit: 'whole', category: 'Dairy' },
             { name: 'Mushrooms', qty: 0.5, unit: 'cup', category: 'Produce' },
             { name: 'Butter', qty: 1, unit: 'tbsp', category: 'Dairy' },
             { name: 'Shredded Cheese', qty: 2, unit: 'tbsp', category: 'Dairy' },
             { name: 'Chives', qty: 1, unit: 'tbsp', category: 'Produce' },
         ],
-        instructions: [
+        [
             'Slice mushrooms and sauté in half the butter for 3 minutes. Set aside.',
             'Whisk eggs with a pinch of salt.',
             'Melt remaining butter in a non-stick pan over medium heat.',
             'Pour in eggs. When edges set, lift and tilt pan to let raw egg flow underneath.',
             'Add mushrooms and cheese to one side. Fold omelette and slide onto a plate.',
             'Garnish with chives and serve.',
-        ],
-    },
-    {
-        id: 11,
-        name: 'Apple Walnut Salad',
-        description: 'A crisp autumn salad with sliced apple, candied walnuts, and a honey-dijon dressing.',
-        tags: ['salad', 'apple', 'no-cook', 'quick'],
-        prepTime: 10, cookTime: 0, servings: 2,
-        categories: ['Lunch', 'Salad', 'Vegetarian', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Apple Walnut Salad',
+        'A crisp autumn salad with sliced apple, candied walnuts, and a honey-dijon dressing.',
+        2, 10, 0,
+        ['Lunch', 'Salad', 'Vegetarian', 'Quick'],
+        [
             { name: 'Apple', qty: 1, unit: 'whole', category: 'Produce' },
             { name: 'Mixed Greens', qty: 3, unit: 'cups', category: 'Produce' },
             { name: 'Walnuts', qty: 0.25, unit: 'cup', category: 'Snacks' },
@@ -536,22 +426,20 @@ export const seedRecipes = [
             { name: 'Dijon Mustard', qty: 1, unit: 'tsp', category: 'Misc' },
             { name: 'Olive Oil', qty: 2, unit: 'tbsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Thinly slice the apple.',
             'Whisk together honey, dijon mustard, and olive oil for the dressing.',
             'Toss greens with dressing in a large bowl.',
             'Top with apple slices, walnuts, and crumbled feta.',
             'Serve immediately.',
-        ],
-    },
-    {
-        id: 12,
-        name: 'Tomato Rice',
-        description: 'Simple one-pot rice cooked in seasoned crushed tomatoes — great as a side or base.',
-        tags: ['vegetarian', 'rice', 'side dish'],
-        prepTime: 5, cookTime: 25, servings: 4,
-        categories: ['Dinner', 'Vegetarian', 'One-Pot'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Tomato Rice',
+        'Simple one-pot rice cooked in seasoned crushed tomatoes — great as a side or base.',
+        4, 5, 25,
+        ['Dinner', 'Vegetarian', 'One-Pot'],
+        [
             { name: 'Rice', qty: 1.5, unit: 'cups', category: 'Grains' },
             { name: 'Crushed Tomatoes', qty: 1, unit: 'can', category: 'Canned Goods' },
             { name: 'Onions', qty: 0.5, unit: 'whole', category: 'Produce' },
@@ -559,22 +447,20 @@ export const seedRecipes = [
             { name: 'Chicken Broth', qty: 1, unit: 'cup', category: 'Canned Goods' },
             { name: 'Olive Oil', qty: 1, unit: 'tbsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Sauté diced onion and garlic in olive oil in a medium pot for 3 minutes.',
             'Add rice and toast for 1 minute, stirring.',
             'Pour in crushed tomatoes and chicken broth. Season with salt.',
             'Bring to a boil, then cover and reduce heat to low.',
             'Cook 18 minutes until liquid is absorbed. Fluff with a fork and serve.',
-        ],
-    },
-    {
-        id: 13,
-        name: 'Chicken Quesadillas',
-        description: 'Crispy flour tortillas stuffed with seasoned chicken and melted cheese.',
-        tags: ['chicken', 'quick', 'savory'],
-        prepTime: 10, cookTime: 10, servings: 2,
-        categories: ['Lunch', 'Meat', 'Quick'], source: 'ai',
-        ingredients: [
+        ]
+    ),
+    new Recipe(
+        'Chicken Quesadillas',
+        'Crispy flour tortillas stuffed with seasoned chicken and melted cheese.',
+        2, 10, 10,
+        ['Lunch', 'Meat', 'Quick'],
+        [
             { name: 'Chicken', qty: 1, unit: 'lb', category: 'Meat' },
             { name: 'Tortillas', qty: 4, unit: 'whole', category: 'Grains' },
             { name: 'Shredded Cheese', qty: 1, unit: 'cup', category: 'Dairy' },
@@ -582,12 +468,12 @@ export const seedRecipes = [
             { name: 'Sour Cream', qty: 0.25, unit: 'cup', category: 'Dairy' },
             { name: 'Cumin', qty: 0.5, unit: 'tsp', category: 'Misc' },
         ],
-        instructions: [
+        [
             'Dice chicken and season with cumin, salt, and pepper. Cook in a skillet until done.',
             'Slice peppers and sauté in the same pan 3 minutes.',
             'Lay a tortilla flat, top half with cheese, chicken, and peppers. Fold over.',
             'Cook in a dry skillet over medium heat 2 minutes per side until golden and crispy.',
             'Slice into wedges and serve with sour cream.',
-        ],
-    },
+        ]
+    ),
 ];

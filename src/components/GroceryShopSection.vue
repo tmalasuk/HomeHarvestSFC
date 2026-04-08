@@ -135,6 +135,9 @@ export default {
             navigator.clipboard.writeText(text).then(() => {
                 this.copied = true;
                 setTimeout(() => { this.copied = false; }, 1800);
+            }).catch(() => {
+                this.copied = true;
+                setTimeout(() => { this.copied = false; }, 1800);
             });
         },
     },
@@ -146,39 +149,39 @@ export default {
     <div id="shopSection" class="section active">
 
         <div class="shop-toolbar">
-            <div class="left-tools">
-                <div class="suggest-wrap" :class="{ open: showSuggestions }">
-                    <input type="text" class="quick-add-input" placeholder="Add item..." v-model="quickAddName"
-                        autocomplete="off" @input="onQuickAddInput" @keydown="onQuickAddKeydown"
-                        @blur="hideSuggestions" />
-                    <transition name="suggest-drop">
-                        <ul class="suggest-dropdown" v-if="showSuggestions">
-                            <li v-for="(s, i) in suggestions" :key="s" class="suggest-item"
-                                :class="{ active: i === highlightedIdx }" :style="{ animationDelay: (i * 0.05) + 's' }"
-                                @mousedown.prevent="pickSuggestion(s)">{{ s.charAt(0).toUpperCase() + s.slice(1) }}</li>
-                        </ul>
-                    </transition>
-                </div>
+            <div class="suggest-wrap" :class="{ open: showSuggestions }">
+                <input type="text" class="quick-add-input" placeholder="Add item..." v-model="quickAddName"
+                    autocomplete="off" @input="onQuickAddInput" @keydown="onQuickAddKeydown"
+                    @blur="hideSuggestions" />
+                <transition name="suggest-drop">
+                    <ul class="suggest-dropdown" v-if="showSuggestions">
+                        <li v-for="(s, i) in suggestions" :key="s" class="suggest-item"
+                            :class="{ active: i === highlightedIdx }" :style="{ animationDelay: (i * 0.05) + 's' }"
+                            @mousedown.prevent="pickSuggestion(s)">{{ s.charAt(0).toUpperCase() + s.slice(1) }}</li>
+                    </ul>
+                </transition>
             </div>
 
-            <div class="action-container">
-                <div class="action-center">
-                    <div class="checkbox-container">
-                        <input type="checkbox" name="checkAll" id="check-all-off" @click="$emit('check-all')">
-                        <label for="check-all-off">Check All Items</label>
-                    </div>
-                    <span id="print-list"><i class="bi bi-printer"></i></span>
-                    <span id="copy-list" @click="copyList" :title="copied ? 'Copied!' : 'Copy list'">
-                        <i :class="copied ? 'bi bi-clipboard-check' : 'bi bi-clipboard'"></i>
-                    </span>
-                </div>
+            <h2 class="grocery-title"><i class="bi bi-leaf"></i> Your Grocery List <i class="bi bi-leaf flip"></i></h2>
+
+            <div class="right-actions">
                 <transition name="toolbar-btn">
                     <button v-if="hasBought" class="add-to-pantry-btn" @click="$emit('add-to-pantry')">
                         <i class="bi bi-arrow-right-circle"></i><span>Add &#10004; to pantry</span>
                     </button>
                 </transition>
+                <div class="checkbox-container">
+                    <input type="checkbox" name="checkAll" id="check-all-off" @click="$emit('check-all')">
+                    <label for="check-all-off">Check All</label>
+                </div>
+                <span id="print-list"><i class="bi bi-printer"></i></span>
+                <span id="copy-list" @click="copyList" :title="copied ? 'Copied!' : 'Copy list'">
+                    <i :class="copied ? 'bi bi-clipboard-check' : 'bi bi-clipboard'"></i>
+                </span>
             </div>
         </div>
+
+        <div class="grocery-divider"></div>
 
         <div class="shopping-list">
             <div class="grid" id="grocery-grid">
@@ -193,137 +196,225 @@ export default {
             </div>
         </div>
 
+    <teleport to="body">
+        <transition name="toast-slide">
+            <div class="copy-toast" v-if="copied">
+                <i class="bi bi-clipboard-check"></i> Copied to clipboard!
+            </div>
+        </transition>
+    </teleport>
+
     </div>
 </template>
 
 <style lang="scss" scoped>
 @use "@/assets/variables" as *;
 
-.action-container {
+.right-actions {
+    margin-left: auto;
     display: flex;
     align-items: center;
-    flex: 1;
-    position: relative;
+    gap: 16px;
+}
 
-    .action-center {
-        left: 50%;
-        display: flex;
-        align-items: center;
-        gap: 25px;
-        pointer-events: none;
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border-subtle);
+    background: var(--add-button-bg-light);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+    opacity: 0.75;
 
-        >* {
-            pointer-events: all;
-        }
+    &:hover {
+        opacity: 1;
+        background: var(--add-button-bg-light);
     }
 
-    .checkbox-container {
-        pointer-events: all;
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        padding: 5px 14px;
-        border-radius: 20px;
-        border: 1.5px solid currentColor;
-        opacity: 0.55;
-        transition: opacity 0.15s ease;
-
-        &:hover {
-            opacity: 1;
-        }
-
-        input {
-            accent-color: currentColor;
-            cursor: pointer;
-            width: 13px;
-            height: 13px;
-            flex-shrink: 0;
-        }
-
-        label {
-            cursor: pointer;
-            font-size: 0.68rem;
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
+    input {
+        accent-color: currentColor;
+        cursor: pointer;
+        width: 13px;
+        height: 13px;
+        flex-shrink: 0;
     }
 
-    #print-list,
-    #copy-list {
-        display: flex;
-        align-items: center;
-        opacity: 0.55;
-        transition: opacity 0.15s ease;
-
-        i {
-            font-size: 1.35rem;
-        }
-
-        &:hover {
-            cursor: pointer;
-            opacity: 1;
-        }
+    label {
+        cursor: pointer;
+        font-size: 1rem;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        white-space: nowrap;
     }
+}
+
+.add-to-pantry-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--pantry-btn);
+    background: var(--pantry-btn);
+    color: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
+    opacity: 0.85;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+#print-list,
+#copy-list {
+    display: flex;
+    align-items: center;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+
+    i {
+        font-size: 2.35rem;
+    }
+
+    &:hover {
+        cursor: pointer;
+        opacity: 1;
+    }
+}
+
+#shopSection {
+    box-shadow: var(--box-shadow);
+    margin-top: 50px;
+    padding: 30px;
+    background-color: var(--bg);
+    border-radius: 15px;
 }
 
 .shopping-list {
-    width: 1300px;
     padding-top: 50px;
     padding-bottom: 50px;
-    margin: 0 auto;
 }
 
 .grid {
-    max-width: 1300px;
-    columns: 2;
+    columns: 3;
     column-gap: 20px;
 }
 
 .shop-toolbar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 24px 0;
+    padding: 0 0 20px;
+    position: relative;
+}
 
-    .left-tools {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+.grocery-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
 
-    .quick-add-input {
-        border: none;
-        border-radius: 50px;
-        padding: 10px 18px;
-        font-family: 'Inter', sans-serif;
-        font-size: 0.75rem;
-        outline: none;
-        width: 180px;
-        transition: width 0.2s ease, border-radius 0.15s ease;
-
-        &:focus {
-            width: 240px;
-        }
-    }
-
-    .suggest-wrap.open .quick-add-input {
-        border-top-left-radius: 50px;
-        border-top-right-radius: 50px;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
+    .flip {
+        transform: scaleX(-1);
     }
 }
 
-.toolbar-btn-enter-active,
-    .toolbar-btn-leave-active {
-        transition: opacity 0.2s ease;
-    }
+.grocery-divider {
+    margin: 0 -30px 20px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgb(197, 197, 197), transparent);
+}
 
-    .toolbar-btn-enter-from,
-    .toolbar-btn-leave-to {
-        opacity: 0;
+.suggest-wrap {
+    width: 240px;
+    transition: width 0.2s ease;
+
+    &:focus-within {
+        width: 240px;
     }
+}
+
+.quick-add-input {
+    border: none;
+    border-radius: 50px;
+    padding: 10px 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    width: 100%;
+    transition: border-radius 0.15s ease;
+    background-color: rgb(233, 231, 231);
+}
+
+.suggest-wrap.open .quick-add-input {
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.copy-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #2c2c2c;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    z-index: 9999;
+    white-space: nowrap;
+    font-size: 0.9rem;
+
+    i {
+        color: #6cbe45;
+    }
+}
+
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast-slide-enter-from,
+.toast-slide-leave-to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+}
+
+.toolbar-btn-enter-active,
+.toolbar-btn-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.toolbar-btn-enter-from,
+.toolbar-btn-leave-to {
+    opacity: 0;
+}
 </style>
