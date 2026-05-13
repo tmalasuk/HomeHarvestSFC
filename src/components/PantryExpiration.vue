@@ -1,5 +1,5 @@
 <script>
-import * as utils from '../utils.js';
+import Expiration from '../models/Expiration.js';
 
 export default {
   name: "PantryExpiration",
@@ -14,9 +14,9 @@ export default {
     percent() {
       if (this.batch) {
         if (!this.batch.length) return 0;
-        return Math.max(...this.batch.map(i => utils.daysToPercent(i.expiration)));
+        return Math.max(...this.batch.map(i => Expiration.toPercent(i.expiration.toDate())));
       }
-      if (this.item) return utils.daysToPercent(this.item.expiration);
+      if (this.item) return Expiration.toPercent(this.item.expiration.toDate());
       return 0;
     },
     barClass() {
@@ -53,29 +53,5 @@ export default {
     --bs-progress-bg: var(--progress-bar); 
 }
 
-.progress {
-        width: 100%;
-        height: 10px;
-        border-radius: 5px;
-        position: relative;
-
-        .fill {
-            height: 100%;
-            border-radius: 4px 0 0 4px;
-            transition: width 0.3s ease;
-
-            &.green {
-                background-color: var(--success);
-            }
-
-            &.yellow {
-                background-color: var(--warning);
-            }
-
-            &.red {
-                background-color: var(--danger);
-            }
-        }
-    }
 
 </style>

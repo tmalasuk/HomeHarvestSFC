@@ -26,6 +26,14 @@ const ingredientCategoryMap = {
     'beets': 'Produce',
     'bell pepper': 'Produce',
     'bell peppers': 'Produce',
+    'red bell pepper': 'Produce',
+    'red bell peppers': 'Produce',
+    'yellow bell pepper': 'Produce',
+    'yellow bell peppers': 'Produce',
+    'orange bell pepper': 'Produce',
+    'orange bell peppers': 'Produce',
+    'yellow pepper': 'Produce',
+    'yellow peppers': 'Produce',
     'blackberry': 'Produce',
     'blackberries': 'Produce',
     'blueberry': 'Produce',
@@ -53,10 +61,13 @@ const ingredientCategoryMap = {
     'collard greens': 'Produce',
     'corn': 'Produce',
     'corn on the cob': 'Produce',
+    'corn kernels': 'Canned Goods',
+    'frozen corn kernels': 'Frozen',
+    'sweet corn kernels': 'Canned Goods',
     'cucumber': 'Produce',
     'cucumbers': 'Produce',
-    'date': 'Produce',
-    'dates': 'Produce',
+    'date': 'Snacks',
+    'dates': 'Snacks',
     'dill': 'Produce',
     'eggplant': 'Produce',
     'endive': 'Produce',
@@ -123,7 +134,6 @@ const ingredientCategoryMap = {
     'pear': 'Produce',
     'pears': 'Produce',
     'peas': 'Produce',
-    'pepper': 'Produce',
     'peppers': 'Produce',
     'pineapple': 'Produce',
     'plantain': 'Produce',
@@ -1068,6 +1078,7 @@ const ingredientCategoryMap = {
     'taco seasoning': 'Spices',
     'thai basil': 'Spices',
     'turmeric': 'Spices',
+    'pepper': 'Spices',
     'white pepper': 'Spices',
     'yellow curry paste': 'Spices',
     "za'atar": 'Spices',
@@ -1261,6 +1272,16 @@ const ingredientCategoryMap = {
     'old el paso': 'Canned Goods',
     'la preferida': 'Canned Goods',
 
+    // ── Branded Pasta / Boxed Meals ───────────────────────────────
+    'kraft': 'Grains',
+    'kraft mac and cheese': 'Grains',
+    'kraft macaroni and cheese': 'Grains',
+    'kraft mac & cheese': 'Grains',
+    'mac and cheese': 'Grains',
+    'macaroni and cheese': 'Grains',
+    'mac & cheese': 'Grains',
+    'boxed mac and cheese': 'Grains',
+
     // ── Branded Meat ──────────────────────────────────────────────
     'oscar mayer': 'Meat',
     'oscar mayer hot dogs': 'Meat',
@@ -1360,19 +1381,33 @@ const skipWords = new Set([
     'raw', 'roasted', 'whole', 'skim', 'carb', 'protein', 'dairy', 'high',
 ]);
 
+// Herbs that live in Produce as fresh items but belong in Spices when measured in tsp/tbsp.
+const HERB_NAMES = new Set([
+    'thyme', 'rosemary', 'oregano', 'basil', 'sage', 'dill', 'tarragon', 'marjoram', 'parsley',
+])
+const SPICE_UNITS   = new Set(['tsp', 'tbsp', 'teaspoon', 'teaspoons', 'tablespoon', 'tablespoons'])
+const PRODUCE_UNITS = new Set(['whole', 'count', 'head', 'bunch', 'each'])
+// Words that signal a produce vegetable/pepper even if the plain word "pepper" maps to Spices.
+const PRODUCE_PEPPER_WORDS = new Set(['bell', 'red', 'yellow', 'orange', 'green', 'poblano', 'anaheim', 'banana'])
+
 // Looks up a category for an ingredient name.
 // Strips qualifier prefixes, then tries exact match, then word fallback (with plural stripping).
-export function getIngredientCategory(name) {
+// Optional `unit` — when a Produce herb is measured in tsp/tbsp it resolves to Spices instead.
+export function getIngredientCategory(name, unit = null) {
     const lower = name.trim().toLowerCase();
 
     // 1. Exact match
-    if (ingredientCategoryMap[lower]) return ingredientCategoryMap[lower];
+    if (ingredientCategoryMap[lower]) {
+        return _applySpiceUnitOverride(ingredientCategoryMap[lower], lower, unit);
+    }
 
     // 2. Strip a qualifier prefix and try exact match on remainder
     for (const prefix of qualifierPrefixes) {
         if (lower.startsWith(prefix + ' ')) {
             const remainder = lower.slice(prefix.length + 1).trim();
-            if (ingredientCategoryMap[remainder]) return ingredientCategoryMap[remainder];
+            if (ingredientCategoryMap[remainder]) {
+                return _applySpiceUnitOverride(ingredientCategoryMap[remainder], lower, unit);
+            }
         }
     }
 
@@ -1380,11 +1415,27 @@ export function getIngredientCategory(name) {
     const words = lower.split(/\s+/);
     for (const word of words) {
         if (skipWords.has(word)) continue;
-        if (ingredientCategoryMap[word]) return ingredientCategoryMap[word];
-        if (word.endsWith('s') && ingredientCategoryMap[word.slice(0, -1)]) return ingredientCategoryMap[word.slice(0, -1)];
-        if (word.endsWith('es') && ingredientCategoryMap[word.slice(0, -2)]) return ingredientCategoryMap[word.slice(0, -2)];
+        if (ingredientCategoryMap[word]) return _applySpiceUnitOverride(ingredientCategoryMap[word], lower, unit);
+        if (word.endsWith('s') && ingredientCategoryMap[word.slice(0, -1)]) return _applySpiceUnitOverride(ingredientCategoryMap[word.slice(0, -1)], lower, unit);
+        if (word.endsWith('es') && ingredientCategoryMap[word.slice(0, -2)]) return _applySpiceUnitOverride(ingredientCategoryMap[word.slice(0, -2)], lower, unit);
     }
     return 'Misc';
+}
+
+function _applySpiceUnitOverride(category, lower, unit) {
+    const u     = (unit || '').trim().toLowerCase()
+    const words = lower.split(/\s+/)
+
+    // Fresh herb measured in tsp/tbsp → treat as Spices
+    if (category === 'Produce' && SPICE_UNITS.has(u) && words.some(w => HERB_NAMES.has(w)))
+        return 'Spices'
+
+    // Spice word "pepper" used with a whole/count unit → it's a produce pepper
+    if (category === 'Spices' && PRODUCE_UNITS.has(u) && words.includes('pepper')
+        && words.some(w => PRODUCE_PEPPER_WORDS.has(w)))
+        return 'Produce'
+
+    return category
 }
 
 // Returns up to `limit` ingredient name suggestions matching the query.

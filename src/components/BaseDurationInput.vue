@@ -11,21 +11,21 @@ export default {
     },
 
     methods: {
+        // Decrements the unit index to the previous unit in the list
         prevUnit() {
             if (this.unitIndex > 0) {
                 this.$emit('update:unit-index', this.unitIndex - 1);
-                this.$emit('change');
             }
         },
+        // Increments the unit index to the next unit in the list
         nextUnit() {
             if (this.unitIndex < this.units.length - 1) {
                 this.$emit('update:unit-index', this.unitIndex + 1);
-                this.$emit('change');
             }
         },
+        // Emits the updated numeric duration value from the input event
         onDurationChange(e) {
             this.$emit('update:duration', Number(e.target.value));
-            this.$emit('change');
         },
     },
 }

@@ -13,6 +13,8 @@ export default {
         return {
             fillActive: false,
             closing: false,
+            active: false,
+            isMobile: window.matchMedia('(max-width: 768px)').matches,
             screen: 1,
             slideDir: 'forward',
             nameError: false,
@@ -31,6 +33,29 @@ export default {
             newIngName: '',
             newIngQty: '',
             newIngUnit: '',
+            unitOptions: [
+                { label: '—',      value: '' },
+                { label: 'tsp',    value: 'tsp' },
+                { label: 'tbsp',   value: 'tbsp' },
+                { label: 'cup',    value: 'cup' },
+                { label: 'fl oz',  value: 'fl oz' },
+                { label: 'pt',     value: 'pt' },
+                { label: 'qt',     value: 'qt' },
+                { label: 'gal',    value: 'gal' },
+                { label: 'mL',     value: 'mL' },
+                { label: 'L',      value: 'L' },
+                { label: 'oz',     value: 'oz' },
+                { label: 'lb',     value: 'lb' },
+                { label: 'g',      value: 'g' },
+                { label: 'kg',     value: 'kg' },
+                { label: 'pinch',  value: 'pinch' },
+                { label: 'dash',   value: 'dash' },
+                { label: 'slice',  value: 'slice' },
+                { label: 'clove',  value: 'clove' },
+                { label: 'can',    value: 'can' },
+                { label: 'pkg',    value: 'pkg' },
+                { label: 'piece',  value: 'piece' },
+            ],
             // screen 4
             steps: [],
             newStep: '',
@@ -49,6 +74,7 @@ export default {
     },
 
     methods: {
+        // Triggers the closing animation then emits close after it completes
         handleClose() {
             if (this.closing) return;
             this.closing = true;
@@ -57,6 +83,7 @@ export default {
             }, 280);
         },
 
+        // Resets all form fields and navigates back to screen 1
         resetForm() {
             this.screen = 1;
             this.slideDir = 'forward';
@@ -77,11 +104,13 @@ export default {
             this.newStep = '';
         },
 
+        // Navigates to the given screen number, setting slide direction based on forward/back movement
         goTo(n) {
             this.slideDir = n > this.screen ? 'forward' : 'back';
             this.screen = n;
         },
 
+        // Validates that a name is entered before advancing to the categories screen
         goToCategories() {
             if (!this.name.trim()) {
                 this.nameError = true;
@@ -91,12 +120,14 @@ export default {
             this.goTo(2);
         },
 
+        // Toggles a category in the selectedCategories list
         toggleCategory(cat) {
             const idx = this.selectedCategories.indexOf(cat);
             if (idx === -1) this.selectedCategories.push(cat);
             else this.selectedCategories.splice(idx, 1);
         },
 
+        // Emits add-category, selects the new category, and clears the input
         addCategory() {
             const name = this.newCat.trim();
             if (!name) return;
@@ -107,6 +138,7 @@ export default {
             this.newCat = '';
         },
 
+        // Appends the current ingredient fields to the list and resets the ingredient inputs
         addIngredient() {
             const name = this.newIngName.trim();
             if (!name) return;
@@ -120,10 +152,12 @@ export default {
             this.newIngUnit = '';
         },
 
+        // Removes the ingredient at the given index
         removeIngredient(i) {
             this.ingredients.splice(i, 1);
         },
 
+        // Appends the current step text to the steps list and clears the input
         addStep() {
             const t = this.newStep.trim();
             if (!t) return;
@@ -131,10 +165,12 @@ export default {
             this.newStep = '';
         },
 
+        // Removes the step at the given index
         removeStep(i) {
             this.steps.splice(i, 1);
         },
 
+        // Emits the completed recipe data and closes the modal
         handleSubmit() {
             if (!this.name.trim()) return;
             this.$emit('submit', {
@@ -151,11 +187,22 @@ export default {
         },
     },
 
+    mounted() {
+        this._mq = window.matchMedia('(max-width: 768px)');
+        this._mqCb = e => { this.isMobile = e.matches; };
+        this._mq.addEventListener('change', this._mqCb);
+    },
+
+    beforeUnmount() {
+        this._mq?.removeEventListener('change', this._mqCb);
+    },
+
     watch: {
         show: {
           immediate: true,
           handler(val) {
             if (val) {
+                this.$nextTick(() => requestAnimationFrame(() => { this.active = true; }));
                 this.$nextTick(() => {
                     setTimeout(() => {
                         const rect = this.$refs.svgRect;
@@ -177,6 +224,7 @@ export default {
                     }, 300);
                 });
             } else {
+                this.active = false;
                 this.resetForm();
                 this.closing = false;
                 this.fillActive = false;
@@ -197,8 +245,8 @@ export default {
 <!-- // paths must be relative (what file you are currently in)-->
 <template>
     <teleport to="body">
-    <div class="modal-backdrop" :class="{ show: show }"></div>
-    <div class="add-recipe-container" :class="{ show: show, 'fill-active': fillActive, closing: closing }">
+    <div class="modal-backdrop" :class="{ show: active }"></div>
+    <div class="add-recipe-container" :class="{ show: active, 'fill-active': fillActive, closing: closing, 'is-mobile': isMobile }">
         <svg class="modal-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
             <rect class="modal-svg-rect" ref="svgRect" x="0" y="0" width="100%" height="100%" rx="18" ry="18"
                 fill="none" stroke="white" stroke-width="6"
@@ -292,7 +340,9 @@ export default {
 
                     <div class="ing-add-row">
                         <input type="number" v-model="newIngQty" placeholder="Qty" min="0" class="ing-input-qty" />
-                        <input type="text" v-model="newIngUnit" placeholder="Unit" class="ing-input-unit" />
+                        <select v-model="newIngUnit" class="ing-input-unit">
+                            <option v-for="u in unitOptions" :key="u.value" :value="u.value">{{ u.label }}</option>
+                        </select>
                         <input type="text" v-model="newIngName" placeholder="Ingredient" class="ing-input-name"
                             @keydown.enter.prevent="addIngredient" />
                         <button type="button" class="step-add-btn" @click="addIngredient">
@@ -477,7 +527,7 @@ export default {
         text-align: center;
         width: 100%;
         border: none;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+        border-bottom: 1px solid var(--border-subtle);
         padding: 8px 10px;
         font-family: 'Quicksand', sans-serif;
         font-size: 0.95rem;
@@ -490,7 +540,7 @@ export default {
         &::placeholder { color: var(--text-faint); opacity: 1; }
 
         &.input-error {
-            border-bottom-color: #c0392b;
+            border-bottom-color: var(--danger);
             animation: shake 0.35s ease;
         }
     }
@@ -524,7 +574,7 @@ export default {
         input[type="number"] {
             width: 100%;
             border: none;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+            border-bottom: 1px solid var(--border-subtle);
             padding: 6px 8px;
             font-family: 'Quicksand', sans-serif;
             font-size: 0.95rem;
@@ -552,8 +602,8 @@ export default {
     padding: 8px 14px;
     border: none;
     border-radius: 6px;
-    background-color: rgb(239, 206, 181);
-    color: rgba(0, 0, 0, 0.75);
+    background-color: var(--modal-btn-bg);
+    color: var(--text);
     font-family: 'Quicksand', sans-serif;
     font-size: 0.9rem;
     font-weight: 600;
@@ -592,7 +642,7 @@ export default {
     .cat-search {
         width: 100%;
         border: none;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        border-bottom: 1px solid var(--border-subtle);
         padding: 6px 8px 6px 24px;
         font-family: 'Quicksand', sans-serif;
         font-size: 0.9rem;
@@ -622,19 +672,19 @@ export default {
     font-size: 0.7rem;
     padding: 3px 10px;
     border-radius: 20px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
     background: transparent;
     cursor: pointer;
     font-family: 'Quicksand', sans-serif;
     color: var(--text);
     transition: background 0.15s, color 0.15s, border-color 0.15s;
 
-    &:hover { border-color: rgba(0, 0, 0, 0.4); }
+    &:hover { border-color: var(--surface4); }
 
     &.active {
-        background: rgb(239, 206, 181);
-        border-color: rgb(239, 206, 181);
-        color: rgba(0, 0, 0, 0.75);
+        background: var(--modal-btn-bg);
+        border-color: var(--modal-btn-bg);
+        color: var(--text);
     }
 }
 
@@ -692,9 +742,30 @@ export default {
     margin-top: 14px;
 
     input { padding: 6px; }
-    input.ing-input-qty  { width: 70px;  flex-shrink: 0; text-align: center; }
-    input.ing-input-unit { width: 64px;  flex-shrink: 0; }
-    input.ing-input-name { width: auto;  flex: 1; min-width: 0; }
+    input.ing-input-qty  { width: 70px; flex-shrink: 0; text-align: center; }
+    input.ing-input-name { width: auto; flex: 1; min-width: 0; }
+
+    select.ing-input-unit {
+        width: 72px;
+        flex-shrink: 0;
+        border: none;
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 6px 4px;
+        font-family: 'Quicksand', sans-serif;
+        font-size: 0.9rem;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        appearance: none;
+        text-align: center;
+
+        &:focus { outline: none; }
+
+        option {
+            background: var(--modal-bg);
+            color: var(--text);
+        }
+    }
 }
 
 // Steps
@@ -721,7 +792,7 @@ export default {
         min-width: 20px;
         height: 20px;
         border-radius: 50%;
-        background: rgba(0, 0, 0, 0.1);
+        background: var(--surface3);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -748,7 +819,7 @@ export default {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
     background: transparent;
     color: var(--text);
     cursor: pointer;
@@ -796,4 +867,84 @@ export default {
 .recipe-screen-leave-to   { opacity: 0; transform: translateX(-14px); }
 .recipe-screen-back-enter-from { opacity: 0; transform: translateX(-14px); }
 .recipe-screen-back-leave-to   { opacity: 0; transform: translateX(14px); }
+
+// ── Hide SVG border on mobile ─────────────────────────────────
+@media (max-width: 768px) {
+    .modal-svg { display: none; }
+}
+
+// ── Mobile bottom sheet (JS-detected — higher specificity than .show rules) ──
+.is-mobile.add-recipe-container {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-height: 55dvh;
+    max-height: 90dvh;
+    padding: 0;
+    border-radius: 24px 24px 0 0;
+    background: var(--bg);
+    box-shadow: 0 -6px 40px rgba(0, 0, 0, 0.22);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: none;
+    transform: translateY(110%);
+    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+
+    &::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--border-subtle);
+        margin: 14px auto 0;
+        flex-shrink: 0;
+    }
+
+    > .close-x { opacity: 1; animation: none; }
+
+    > .add-recipe-body {
+        opacity: 1;
+        animation: none;
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        padding: 8px 20px 0;
+        margin-top: 0;
+    }
+}
+
+.is-mobile.add-recipe-container.show {
+    transform: translateY(0);
+    pointer-events: auto;
+    overflow: hidden;
+    max-height: 90dvh;
+    width: 100%;
+}
+
+.is-mobile.add-recipe-container.fill-active {
+    background: var(--bg);
+    box-shadow: 0 -6px 40px rgba(0, 0, 0, 0.22);
+    > .close-x, > .add-recipe-body { animation: none; opacity: 1; }
+}
+
+.is-mobile.add-recipe-container.closing {
+    animation: none;
+    transform: translateY(110%);
+    pointer-events: none;
+    transition: transform 0.28s ease-in;
+}
+
+.is-mobile.add-recipe-container .recipe-screen-nav {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    padding: 10px 0 env(safe-area-inset-bottom, 32px);
+    margin-top: 12px;
+}
 </style>

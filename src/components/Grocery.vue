@@ -1,10 +1,10 @@
 <script>
 import GroceryShopSection from './GroceryShopSection.vue';
-import { computeExpirationDate } from '../utils.js';
+import Expiration from '../models/Expiration.js';
 export default{
   name: 'Grocery',
     components: { GroceryShopSection },
-    emits: ['add-to-pantry', 'add-item', 'add-category', 'edit-category', 'reorder-categories', 'learn-override', 'rename-category'],
+    emits: ['add-to-pantry', 'add-item', 'reorder-categories', 'rename-category', 'remove-restock-item'],
 
     props: {
         shoppingList: { type: Array, required: true },
@@ -18,7 +18,6 @@ export default{
 
     data() {
         return {
-            selectedCategoryGrocery: { name: '' },
             checkAll: false,
             deletedItemToast: null,
             toastTimer: null,
@@ -27,22 +26,22 @@ export default{
 
     computed: {
         sortedByCat() {
-            let sortedArray = this.categories.map(c => ({ ...c, products: [] }));
+            //says ... is for creating a shallow copy...?
+            // makes a new array where each category gets a fresh product array
+            let sortedArray = this.categories.map(c => (
+                { ...c, products: [] }
+            ));
+            //populate
             this.shoppingList.forEach(p => {
-                let category = sortedArray.find(c => c.name === p.category);
+                let category = sortedArray.find(c => c.name === p.product.category);
                 if (category) category.products.push(p);
             });
             this.restockShoppingList.forEach(p => {
-                let category = sortedArray.find(c => c.name === p.category);
+                let category = sortedArray.find(c => c.name === p.product.category);
                 if (category) category.products.push(p);
             });
+            // gives back array with items grouped by categories
             return sortedArray;
-        },
-
-        filteredShoppingList() {
-            const combined = [...this.shoppingList, ...this.restockShoppingList];
-            if (!this.selectedCategoryGrocery.name) return combined;
-            return combined.filter(p => p.category === this.selectedCategoryGrocery.name);
         },
 
         boughtItems() {
@@ -53,14 +52,7 @@ export default{
     },
 
     methods: {
-        selectCategoryGrocery(category) {
-            if (this.selectedCategoryGrocery && this.selectedCategoryGrocery.id === category.id) {
-                this.selectedCategoryGrocery = { name: '' };
-            } else {
-                this.selectedCategoryGrocery = category;
-            }
-        },
-
+        // Toggles all shopping items between bought and not bought
         checkAllMethod() {
             this.checkAll = !this.checkAll;
             if (this.checkAll) {
@@ -70,54 +62,35 @@ export default{
             }
         },
 
+        // Decrements qty, or removes the item and shows an undo toast if qty would reach zero
         lowerQty(product) {
             if (product.qty > 1) {
                 product.qty--;
             } else {
                 const index = this.shoppingList.findIndex(p => p.id === product.id);
-                if (index === -1) return;
-                const [removed] = this.shoppingList.splice(index, 1);
-                if (this.toastTimer) clearTimeout(this.toastTimer);
-                this.deletedItemToast = { item: removed, index };
-                this.toastTimer = setTimeout(() => { this.deletedItemToast = null; }, 5000);
+                if (index !== -1) {
+                    const [removed] = this.shoppingList.splice(index, 1);
+                    if (this.toastTimer) clearTimeout(this.toastTimer);
+                    this.deletedItemToast = { item: removed, index };
+                    this.toastTimer = setTimeout(() => { this.deletedItemToast = null; }, 5000);
+                } else {
+                    // Restock item — clearing it means turning off ghost.restock
+                    this.$emit('remove-restock-item', product);
+                }
             }
         },
 
+        // Increments the item's qty by one
         increaseQty(product) {
             product.qty++;
         },
 
-        moveGroceryItem({ productId, newCatId, dropIndex }) {
-            const newCat = this.categories.find(c => c.id === newCatId);
-            if (!newCat) return;
-
-            let product = this.shoppingList.find(p => p.id === productId);
-            const inRestock = !product;
-            if (inRestock) product = this.restockShoppingList.find(p => p.id === productId);
-            if (!product) return;
-
-            this.$emit('learn-override', { name: product.name, category: newCat.name });
-            product.category = newCat.name;
-
-            const list = inRestock ? this.restockShoppingList : this.shoppingList;
-            list.splice(list.indexOf(product), 1);
-
-            const catItems = list.filter(p => p.category === newCat.name);
-            let insertAt;
-            if (catItems.length === 0 || dropIndex >= catItems.length) {
-                const last = catItems[catItems.length - 1];
-                insertAt = last ? list.indexOf(last) + 1 : list.length;
-            } else {
-                insertAt = list.indexOf(catItems[dropIndex]);
-            }
-            list.splice(insertAt, 0, product);
+        // Recomputes the item's expiration date from its current duration and unit
+        updateExpiration(item) {
+            item.expiration = Expiration.create(item.expiration.durationValue, item.expiration.unitIndex);
         },
 
-        updateExpiration(product) {
-            const unit = this.units[product.selectedUnit];
-            product.expiration = computeExpirationDate(product.durationValue, unit);
-        },
-
+        // Restores the most recently deleted item from the undo toast
         undoDelete() {
             if (!this.deletedItemToast) return;
             clearTimeout(this.toastTimer);
@@ -125,6 +98,7 @@ export default{
             this.deletedItemToast = null;
         },
 
+        // Dismisses the undo toast without restoring the deleted item
         dismissToast() {
             clearTimeout(this.toastTimer);
             this.deletedItemToast = null;
@@ -139,29 +113,24 @@ export default{
         <grocery-shop-section
             :sorted-by-cat="sortedByCat"
             :categories="categories"
-            :filtered-shopping-list="filteredShoppingList"
-            :selected-category-grocery="selectedCategoryGrocery"
             :is-desktop="isDesktop"
             :is-mobile="isMobile"
             :has-bought="boughtItems.length > 0"
             :units="units"
             @check-all="checkAllMethod"
-            @select-category="selectCategoryGrocery($event)"
             @rename-category="$emit('rename-category', $event)"
             @reorder-categories="$emit('reorder-categories', $event)"
             @qty-increase="increaseQty($event)"
             @qty-decrease="lowerQty($event)"
             @update-expiration="updateExpiration($event)"
             @add-to-pantry="$emit('add-to-pantry')"
-            @update:selected-category-grocery="selectedCategoryGrocery = $event"
-            @move-item="moveGroceryItem($event)"
             @add-item="$emit('add-item', $event)">
         </grocery-shop-section>
 
         <teleport to="body">
             <transition name="toast-slide">
                 <div class="delete-toast" v-if="deletedItemToast">
-                    <span class="toast-msg"><i class="bi bi-trash3"></i> <strong>{{ deletedItemToast.item.name }}</strong> removed</span>
+                    <span class="toast-msg"><i class="bi bi-trash3"></i> <strong>{{ deletedItemToast.item.product.name }}</strong> removed</span>
                     <button class="toast-undo" @click="undoDelete">Undo</button>
                     <button class="toast-close" @click="dismissToast"><i class="bi bi-x"></i></button>
                 </div>

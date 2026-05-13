@@ -9,49 +9,37 @@ export default {
     props: {
         sortedByCat: { type: Array, required: true },
         categories: { type: Array, required: true },
-        filteredShoppingList: { type: Array, required: true },
         selectedCategoryGrocery: { type: Object, default: () => ({ name: '' }) },
         isDesktop: { type: Boolean, required: true },
         isMobile: { type: Boolean, required: true },
         units: { type: Array, required: true },
+        hideEmpty: { type: Boolean, default: false },
     },
 
     emits: [
-        'select-category',
         'rename-category',
         'qty-increase',
         'qty-decrease',
         'update-expiration',
-        'move-item',
     ],
 
     data() {
         return {
-            dragOverCatId: null,
             editingCatId: null,
             editingCatName: '',
         };
     },
 
-    mounted() {
-        this.initSortable();
-    },
-
-    watch: {
-        sortedByCat() {
-            this.$nextTick(() => {
-                if ($('.item-list').data('ui-sortable')) {
-                    $('.item-list').sortable('refresh');
-                }
-            });
+    computed: {
+        // if hide empty is not clicked, give everything else filter
+        displayedCategories() {
+            if (!this.hideEmpty) return this.sortedByCat;
+            return this.sortedByCat.filter(c => c.products.length > 0);
         },
     },
 
     methods: {
-        handleCategoryClick(cat) {
-            this.$emit('select-category', cat);
-        },
-
+        // Enters rename mode for a category and focuses the rename input
         startEdit(cat) {
             this.editingCatId = cat.id;
             this.editingCatName = cat.name;
@@ -61,6 +49,7 @@ export default {
             });
         },
 
+        // Emits rename-category if the name changed, then exits rename mode
         commitEdit(cat) {
             const newName = this.editingCatName.trim();
             if (newName && newName !== cat.name) {
@@ -70,47 +59,27 @@ export default {
             this.editingCatName = '';
         },
 
+        // Exits rename mode without saving
         cancelEdit() {
             this.editingCatId = null;
             this.editingCatName = '';
         },
 
-        initSortable() {
-            const vm = this;
-            $('.item-list').sortable({
-                connectWith: '.item-list',
-                delay: 200,
-                cancel: '.item-count, .item-count *, input, .circle',
-                helper: 'clone',
-                appendTo: 'body',
-                tolerance: 'pointer',
-                start() {
-                    if (vm.isMobile) {
-                        document.querySelector('#grocery-grid').classList.add('mobile-dragging');
-                    }
-                },
-                stop() {
-                    document.querySelector('#grocery-grid').classList.remove('mobile-dragging');
-                    vm.dragOverCatId = null;
-                },
-                over() {
-                    if (vm.isMobile) {
-                        vm.dragOverCatId = $(this).data('cat-id');
-                    }
-                },
-                out() {
-                    if (vm.isMobile) {
-                        vm.dragOverCatId = null;
-                    }
-                },
-                receive(event, ui) {
-                    const newCatId = $(this).data('cat-id');
-                    const productId = $(ui.item).data('product-id');
-                    const dropIndex = $(ui.item).index();
-                    ui.item.remove();
-                    vm.$emit('move-item', { productId, newCatId, dropIndex });
-                },
-            });
+        // Locks the element's dimensions before a CSS leave transition so it animates from its current position
+        // prevents things from jumping around
+        catBeforeLeave(el) {
+            el.style.width = el.offsetWidth + 'px';
+            el.style.height = el.offsetHeight + 'px';
+            el.style.top = el.offsetTop + 'px';
+            el.style.left = el.offsetLeft + 'px';
+        },
+
+        // Clears the locked dimensions if the leave transition was cancelled
+        catLeaveCancelled(el) {
+            el.style.width = '';
+            el.style.height = '';
+            el.style.top = '';
+            el.style.left = '';
         },
     },
 }
@@ -118,30 +87,29 @@ export default {
 
 <!-- // paths must be relative (what file you are currently in)-->
 <template>
-    <div v-for="cat in sortedByCat" :key="cat.id" :data-id="cat.id">
-        <div class="grid-item" :class="{ 'drag-target': dragOverCatId === cat.id, 'empty-cat': cat.products.length === 0 }">
-            <div class="sort-box">
-                <div class="category-header" @click="editingCatId !== cat.id && handleCategoryClick(cat)">
-                    <input v-if="editingCatId === cat.id" class="cat-rename-input" v-model="editingCatName"
-                        @keydown.enter.prevent="commitEdit(cat)" @keydown.escape="cancelEdit" @blur="cancelEdit"
-                        @click.stop />
-                    <template v-else>
-                        <span :class="{ 'active-header': selectedCategoryGrocery.name == cat.name }">{{ cat.name
-                            }}</span>
-                        <div class="wrap">
-                            <i class="bi bi-pencil-square" @click.stop="startEdit(cat)"></i>
-                        </div>
-                    </template>
-                </div>
+    <TransitionGroup tag="div" name="cat-hide" class="grid" id="grocery-grid" @before-leave="catBeforeLeave" @leave-cancelled="catLeaveCancelled">
+    <div v-for="cat in displayedCategories" :key="cat.id" :data-id="cat.id">
+        <div class="grid-item" :class="{ 'empty-cat': cat.products.length === 0 }">
+            <div class="category-header">
+                <input v-if="editingCatId === cat.id" class="cat-rename-input" v-model="editingCatName"
+                    @keydown.enter.prevent="commitEdit(cat)" @keydown.escape="cancelEdit" @blur="cancelEdit"
+                    @click.stop />
+                <template v-else>
+                    <span>{{ cat.name }}</span>
+                    <div class="wrap">
+                        <i class="bi bi-pencil-square" @click.stop="startEdit(cat)"></i>
+                    </div>
+                </template>
             </div>
 
-            <ul class="item-list" :data-cat-id="cat.id">
-                <li v-if="cat.products.length === 0" class="empty-placeholder">Drop items here</li>
-                <li v-for="product in cat.products" :key="product.id" :data-product-id="product.id">
+            <ul class="item-list">
+                <li v-for="product in cat.products" :key="product.id">
                     <label class="circle-check">
                         <input class="check-me-off" v-model="product.bought" type="checkbox">
                         <span class="circle"></span>
-                        <span class="item-name" :class="{ 'checked': product.bought }">{{ product.name }}</span>
+                        <span class="item-name" :class="{ 'checked': product.bought }">
+                            {{ product.product.name }}<span v-if="product.qtyHint" class="qty-hint">({{ product.qtyHint }})</span>
+                        </span>
                     </label>
                     <transition name="item-swap" mode="out-in">
                         <div class="item-count" v-if="!product.bought" :key="'qty'">
@@ -150,15 +118,16 @@ export default {
                             <p class="number">{{ product.qty }}</p>
                             <i class="bi bi-plus-lg" @click="$emit('qty-increase', product)"></i>
                         </div>
-                        <base-duration-input v-else :key="'exp'" :duration="product.durationValue"
-                            :unit-index="product.selectedUnit" :units="units" track-width="80px" variant="grocery"
-                            @update:duration="product.durationValue = $event; $emit('update-expiration', product)"
-                            @update:unit-index="product.selectedUnit = $event; $emit('update-expiration', product)" />
+                        <base-duration-input v-else :key="'exp'" :duration="product.expiration.durationValue"
+                            :unit-index="product.expiration.unitIndex" :units="units" track-width="80px" variant="grocery"
+                            @update:duration="product.expiration.durationValue = $event; $emit('update-expiration', product)"
+                            @update:unit-index="product.expiration.unitIndex = $event; $emit('update-expiration', product)" />
                     </transition>
                 </li>
             </ul>
         </div>
     </div>
+    </TransitionGroup>
 </template>
 
 <style lang="scss" scoped>
@@ -194,30 +163,26 @@ export default {
     opacity: 0.4;
     transition: opacity 0.2s ease;
 
-    &:hover, &.drag-target {
+    &:hover {
         opacity: 1;
     }
 }
 
-.empty-placeholder {
-    text-align: center;
-    font-size: 0.72rem;
-    font-style: italic;
-    opacity: 0.5;
-    padding: 10px 0;
-    list-style: none;
-    pointer-events: none;
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    align-items: start;
+
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
 }
 
 .grid-item {
-    break-inside: avoid;
-    -webkit-column-break-inside: avoid;
     width: 100%;
     border-radius: 20px;
-    margin-bottom: 20px;
-    transition: background-color 0.4s ease, box-shadow 0.4s ease,
-        border-radius 0.4s ease, margin-bottom 0.4s ease;
-        box-shadow: var(--box-shadow);
+    transition: background-color 0.4s ease, border-radius 0.4s ease;
 
     .item-list {
         max-height: 2000px;
@@ -242,12 +207,6 @@ export default {
     padding: 0;
 }
 
-.sort-box {
-    position: relative;
-    z-index: 1;
-}
-
-
 .category-header {
     display: flex;
     align-items: center;
@@ -260,21 +219,10 @@ export default {
     text-transform: uppercase;
     letter-spacing: 0.1em;
     border-radius: 20px 20px 0px 0px;
+    border-bottom: 1px solid var(--border-subtle);
     user-select: none;
     transition: border-radius 0.4s ease, padding 0.35s ease,
         border-bottom 0.3s ease, opacity 0.3s ease;
-
-    .grip {
-        cursor: grab;
-        opacity: 0.4;
-        font-size: 1.1rem;
-        line-height: 1;
-        flex-shrink: 0;
-
-        &:active {
-            cursor: grabbing;
-        }
-    }
 
     .wrap {
         margin-left: auto;
@@ -354,7 +302,13 @@ export default {
     position: relative;
     display: inline-block;
     transition: color 0.3s ease;
-    /* optional fade */
+}
+
+.qty-hint {
+    font-size: 0.75rem;
+    opacity: 0.4;
+    margin-left: 4px;
+    font-style: italic;
 }
 
 .item-name.checked+.item-count i {
@@ -390,6 +344,36 @@ export default {
 .bi-plus {
     pointer-events: all;
 }
+
+.grid {
+    position: relative;
+}
+
+.cat-hide-move {
+    transition: transform 0.45s ease;
+}
+
+.cat-hide-enter-active {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.cat-hide-enter-from {
+    opacity: 0;
+    transform: scale(0.92) translateY(6px);
+}
+
+.cat-hide-leave-active {
+    position: absolute;
+    pointer-events: none;
+    transition: opacity 0.32s ease, transform 0.38s ease;
+    z-index: 5;
+}
+
+.cat-hide-leave-to {
+    opacity: 0;
+    transform: scale(0.88) translateY(-8px);
+}
+
 
 
 
@@ -453,4 +437,43 @@ label {
     }
 }
 
+// ── Mobile layout ─────────────────────────────────────────────
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .grid-item {
+        border-radius: 14px;
+        margin-bottom: 0;
+        background: var(--bg);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .category-header {
+        padding: 12px 16px;
+        border-radius: 14px 14px 0 0;
+        font-size: 0.78rem;
+    }
+
+    .item-list {
+        border-radius: 0 0 14px 14px;
+    }
+
+    .item-list li {
+        height: auto;
+        min-height: 50px;
+        padding: 10px 14px;
+    }
+
+    .item-count i {
+        padding: 8px 12px;
+        font-size: 1rem;
+    }
+
+    .circle {
+        border-color: var(--border-subtle);
+    }
+}
 </style>

@@ -1,15 +1,17 @@
-import BaseItem from './BaseItem.js';
+import Expiration from './Expiration.js'
 
-function ShoppingItem(name, category, qty) {
-    BaseItem.call(this, name, category);
-    this.qty = qty;
-    this.expiration = null;
-    this.bought = false;
-    this.durationValue = 2;
-    this.selectedUnit = 1;
+class ShoppingItem {
+    constructor(product, qty, expiration = null) {
+        this.id = crypto.randomUUID()
+        this.product = product
+        this.qty = qty
+        this.qtyHint = null  // faint deficit label shown in grocery list, e.g. "3 count"
+        this.expiration = expiration ?? Expiration.create(
+            product.defaultDurationValue,
+            product.defaultUnitIndex
+        )
+        this.bought = false
+    }
 }
 
-ShoppingItem.prototype = Object.create(BaseItem.prototype);
-ShoppingItem.prototype.constructor = ShoppingItem;
-
-export default ShoppingItem;
+export default ShoppingItem

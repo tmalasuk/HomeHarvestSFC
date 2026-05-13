@@ -1,59 +1,49 @@
-import PantryProduct from '../models/PantryProduct.js';
-import PantryItem from '../models/PantryItem.js';
-import RestockDecorator from '../models/RestockDecorator.js';
+import ItemFactory from '../models/ItemFactory.js'
 
 function PantryCollection(arr) {
-    const items = arr || [];
+    const items = arr || []
 
-    items.add = function(name, category, qty, expiration) {
-        let matchProduct = this.find(p => p.name === name && p.category === category.name);
-        const defaultExpiration = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000) * 2);
-        const newItems = [];
-        for (let i = 0; i < qty; i++) {
-            const item = new PantryItem(name, category.name, 100, expiration ?? defaultExpiration);
-            newItems.push(item);
-        }
-        if (matchProduct) {
-            matchProduct.batch.unshift(...newItems);
-        } else {
-            const product = new PantryProduct(name, category.name);
-            product.batch = newItems;
-            this.unshift(product);
-        }
-        return this;
-    }
-
-    items.removeProduct = function(product) {
-        const index = this.indexOf(product);
-        if (index !== -1) this.splice(index, 1);
-        return this;
-    }
-
-    items.removeItem = function(item, product) {
-        const productIndex = this.findIndex(p => p.name === product.name);
-        const targetProduct = this[productIndex];
-        const itemIndex = targetProduct.batch.findIndex(i => i.name === item.name);
-        targetProduct.batch.splice(itemIndex, 1);
-        if (targetProduct.batch.length === 0) {
-            this.splice(productIndex, 1);
-        } else if (targetProduct.batch.length === 1) {
-            targetProduct.isOpen = false;
-        }
-        return this;
-    }
-
-    items.hasIngredient = function(name) {
-        const key = name.trim().toLowerCase();
-        return this.some(p => p.name.trim().toLowerCase() === key);
-    }
-
-    items.getRestockItems = function() {
+    // Prepends a new PantryItem built from the given product to the front of the collection
+    items.add = function(product, qty, expiration, location) {
+        this.unshift(ItemFactory.makePantryItem(product, qty, expiration, location))
         return this
-            .filter(p => p.restock === true)
-            .map(p => new RestockDecorator(p));
     }
 
-    return items;
+    // Removes a single item by id
+    items.removeItem = function(item) {
+        const index = this.findIndex(i => i.id === item.id)
+        if (index !== -1) this.splice(index, 1)
+        return this
+    }
+
+    // Removes all pantry items belonging to the given product
+    items.removeProduct = function(product) {
+        this.getBatch(product).forEach(item => this.removeItem(item))
+        return this
+    }
+
+    // Returns one unique Product per product id in this collection
+    items.getProducts = function() {
+        const seen = new Set()
+        return this.filter(item => {
+            if (seen.has(item.product.id)) return false
+            seen.add(item.product.id)
+            return true
+        }).map(item => item.product)
+    }
+
+    // Returns all items in this collection that belong to the given product
+    items.getBatch = function(product) {
+        return this.filter(item => item.product.id === product.id)
+    }
+
+    // Returns true if any item's product name matches the given name (case-insensitive)
+    items.hasIngredient = function(name) {
+        const key = name.trim().toLowerCase()
+        return this.some(item => item.product.name.trim().toLowerCase() === key)
+    }
+
+    return items
 }
 
-export default PantryCollection;
+export default PantryCollection

@@ -4,7 +4,7 @@ export default {
 
     props: {
         recipe:                     { type: Object,   required: true },
-        isIngredientInPantry:       { type: Function, required: true },
+        getIngredientStatus:        { type: Function, required: true },
         isIngredientOnShoppingList: { type: Function, required: true },
         newlyAddedIngredients:      { type: Array,    required: true },
         cardStyle:                  { type: Object,   default: () => ({}) },
@@ -12,7 +12,7 @@ export default {
         showTags:                   { type: Boolean,  default: true },
     },
 
-    emits: ['back', 'add-to-grocery'],
+    emits: ['back', 'add-to-grocery', 'make-recipe'],
 }
 </script>
 
@@ -58,17 +58,35 @@ export default {
                     <h3 class="recipe-col-title">Ingredients</h3>
                     <div class="ingredient-row" v-for="ingredient in recipe.ingredients" :key="ingredient.name">
                         <span class="ing-qty">{{ ingredient.qty }} {{ ingredient.unit }}</span>
-                        <span class="ing-name">{{ ingredient.name }}</span>
-                        <i class="bi bi-check-circle-fill ing-in-pantry" v-if="isIngredientInPantry(ingredient.name)"></i>
-                        <i class="bi bi-cart-fill ing-on-list"
-                            v-else-if="isIngredientOnShoppingList(ingredient.name)"
-                            :class="{ 'just-added': newlyAddedIngredients.includes(ingredient.name) }"
-                            :style="newlyAddedIngredients.includes(ingredient.name) ? { animationDelay: newlyAddedIngredients.indexOf(ingredient.name) * 150 + 'ms' } : {}">
-                        </i>
+                        <span class="ing-name">{{ ingredient.name }}<span v-if="ingredient.prep" class="ing-prep">, {{ ingredient.prep }}</span></span>
+                        <template v-if="getIngredientStatus(ingredient) === 'ok'">
+                            <i class="bi bi-check-circle-fill ing-in-pantry"></i>
+                        </template>
+                        <template v-else-if="getIngredientStatus(ingredient) === 'insufficient'">
+                            <i class="bi bi-cart-fill ing-on-list"
+                                v-if="isIngredientOnShoppingList(ingredient.name)"
+                                :class="{ 'just-added': newlyAddedIngredients.includes(ingredient.name) }"
+                                :style="newlyAddedIngredients.includes(ingredient.name) ? { animationDelay: newlyAddedIngredients.indexOf(ingredient.name) * 150 + 'ms' } : {}">
+                            </i>
+                            <i v-else class="bi bi-exclamation-circle-fill ing-low-qty" title="Not enough in pantry"></i>
+                        </template>
+                        <template v-else-if="getIngredientStatus(ingredient) === 'incompatible'">
+                            <i class="bi bi-check-circle ing-incompatible" title="In pantry (quantity unverifiable)"></i>
+                        </template>
+                        <template v-else>
+                            <i class="bi bi-cart-fill ing-on-list"
+                                v-if="isIngredientOnShoppingList(ingredient.name)"
+                                :class="{ 'just-added': newlyAddedIngredients.includes(ingredient.name) }"
+                                :style="newlyAddedIngredients.includes(ingredient.name) ? { animationDelay: newlyAddedIngredients.indexOf(ingredient.name) * 150 + 'ms' } : {}">
+                            </i>
+                        </template>
                     </div>
                     <div class="add-to-grocery-wrap">
                         <button class="add-to-grocery-btn" @click="$emit('add-to-grocery', recipe)">
                             <i class="bi bi-cart-plus"></i> Add to My Grocery List
+                        </button>
+                        <button class="make-recipe-btn" @click="$emit('make-recipe', recipe)">
+                            <i class="bi bi-fire"></i> Make This Recipe
                         </button>
                     </div>
                 </div>
@@ -93,7 +111,7 @@ export default {
 @use "@/assets/variables" as *;
 
 .book-detail-view {
-    padding: 4px 0;
+    padding: 20px 30px;
 }
 
 .back-btn {
@@ -136,7 +154,7 @@ export default {
         flex-direction: column;
         align-items: center;
         gap: 10px;
-        color: rgba(0, 0, 0, 0.25);
+        color: var(--text-faint);
 
         i {
             font-size: 48px;
@@ -157,25 +175,6 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 14px 0 20px;
-}
-
-.upload-photo-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 16px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    font-family: 'Oxygen';
-    font-size: 13px;
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: background 0.15s ease;
-
-    &:hover {
-        background: var(--bg);
-    }
 }
 
 .book-recipe-card-content {
@@ -287,18 +286,38 @@ export default {
     .ing-name {
         color: var(--text);
         flex: 1;
+
+        .ing-prep {
+            color: var(--text-faint);
+            font-size: 13px;
+            font-style: italic;
+        }
     }
 
     .ing-in-pantry {
         margin-left: auto;
-        color: #7d9e8b;
+        color: var(--success);
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .ing-low-qty {
+        margin-left: auto;
+        color: var(--warning, #e6a817);
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .ing-incompatible {
+        margin-left: auto;
+        color: var(--text-faint);
         font-size: 14px;
         flex-shrink: 0;
     }
 
     .ing-on-list {
         margin-left: auto;
-        color: #8a9aae;
+        color: var(--dusty-blue);
         font-size: 14px;
         flex-shrink: 0;
 
@@ -321,6 +340,28 @@ export default {
 
 .add-to-grocery-wrap {
     margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.make-recipe-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
+    background: var(--sage);
+    color: #fff;
+    font-family: 'Oxygen';
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    i { font-size: 16px; }
+    &:hover { opacity: 0.85; }
 }
 
 .add-to-grocery-btn {
@@ -366,28 +407,87 @@ export default {
     }
 }
 
-.book-recipe-notes {
-    margin-top: 28px;
-    padding: 16px 18px;
-    background: var(--surface);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-
-    h4 {
-        font-family: 'Oxygen';
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--text-faint);
-        margin-bottom: 8px;
-        font-weight: 700;
+// ── Mobile overhaul ─────────────────────────────────────────
+@media (max-width: 768px) {
+    .book-recipe-photo-full {
+        height: 200px;
+        border-radius: 0;
     }
 
-    p {
-        font-size: 15px;
-        color: var(--text-muted);
-        font-family: 'Oxygen';
-        line-height: 1.6;
+    .book-recipe-card-content {
+        padding: 20px 16px 28px;
+        border: none;
+        border-radius: 0;
+    }
+
+    .recipe-card-title {
+        font-size: 22px;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+    }
+
+    .recipe-card-stats {
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        font-size: 12px;
+        justify-content: center;
+    }
+
+    .recipe-card-columns {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .recipe-card-divider {
+        display: none;
+    }
+
+    .recipe-card-directions {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+    }
+
+    .ingredient-row {
+        font-size: 13px;
+        gap: 10px;
+
+        .ing-qty {
+            min-width: 60px;
+        }
+    }
+
+    .direction-row {
+        font-size: 13px;
+    }
+
+    .back-btn {
+        display: none;
+    }
+
+    .book-detail-action-bar {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 0 16px;
+    }
+
+    .book-detail-action-bar :deep(.upload-photo-btn) {
+        display: none;
+    }
+
+    .add-to-grocery-wrap {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .add-to-grocery-btn,
+    .make-recipe-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .recipe-col-title {
+        font-size: 20px;
     }
 }
 </style>

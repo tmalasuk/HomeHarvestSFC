@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["http://localhost:5173", "https://homeharvest-cdbd3.web.app", "https://homeharvest-cdbd3.firebaseapp.com"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600
+  }
+]
